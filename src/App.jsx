@@ -2,17 +2,20 @@ import React, { useState } from "react";
 import { initializeApp } from "firebase/app";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
 import { getFirestore, doc, setDoc } from "firebase/firestore";
+import { getAnalytics } from "firebase/analytics";
 
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_AUTH_DOMAIN",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_STORAGE_BUCKET",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyCD_lQ-oorl0dn0YSckzIvAdHuugBo31v4",
+  authDomain: "fitnesspwa-39bcd.firebaseapp.com",
+  projectId: "fitnesspwa-39bcd",
+  storageBucket: "fitnesspwa-39bcd.firebasestorage.app",
+  messagingSenderId: "291905919865",
+  appId: "1:291905919865:web:29add533c4218ff2686da8",
+  measurementId: "G-Z3YMDR09Z3"
 };
 
 const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
