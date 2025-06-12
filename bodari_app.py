@@ -192,7 +192,7 @@ def populate_mock_recipes():
         insert_recipe(r)
         
 # -------------------- Open AI --------------------
-openai.api_key = os.getenv("OPENAI_API_KEY")
+openai.api_key = st.secrets["openai"]["api_key"]
 
 # -------------------- Calories Formula --------------------
 def calories_formula(height, weight, age, gender, activity_level, goal=None):
