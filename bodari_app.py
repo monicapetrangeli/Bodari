@@ -638,7 +638,7 @@ def main_page():
                             ingredients[k.strip()] = v.strip()
 
                     # Create OpenAI prompt
-                    prompt = f"""Estimate the total protein (g), fat (g), carbs (g), and calories for a meal named '{meal_name}' made of the following ingredients:
+                    prompt = f"""Estimate the total protein (g), fat (g), carbs (g), and calories for a meal made of the following ingredients:
                     """
                     for ing, qty in ingredients.items():
                         prompt += f"- {ing}: {qty}\n"
