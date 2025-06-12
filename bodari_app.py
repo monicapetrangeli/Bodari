@@ -654,11 +654,17 @@ def main_page():
                         # Example reply: "Protein: 35g, Fat: 12g, Carbs: 40g, Calories: 480"
 
                         import re
-                        protein = float(re.search(r"protein[:\-]?\s*(\d+)", reply, re.I).group(1))
-                        fat = float(re.search(r"fat[:\-]?\s*(\d+)", reply, re.I).group(1))
-                        carbs = float(re.search(r"carbs?[:\-]?\s*(\d+)", reply, re.I).group(1))
-                        calories = float(re.search(r"calories[:\-]?\s*(\d+)", reply, re.I).group(1))
-
+                        match = re.search(r"protein[:\-]?\s*(\d+)", reply, re.IGNORECASE)
+                        protein = float(match.group(1)) if match else 0.0
+                        
+                        match = re.search(r"fat[:\-]?\s*(\d+)", reply, re.IGNORECASE)
+                        fat = float(match.group(1)) if match else 0.0
+                        
+                        match = re.search(r"carbs?[:\-]?\s*(\d+)", reply, re.IGNORECASE)
+                        carbs = float(match.group(1)) if match else 0.0
+                    
+                        match = re.search(r"calories[:\-]?\s*(\d+)", reply, re.IGNORECASE)
+                        calories = float(match.group(1)) if match else 0.0
                         # Save to DB
                         conn = sqlite3.connect("bodari_users.db")
                         c = conn.cursor()
