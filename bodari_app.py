@@ -842,7 +842,7 @@ def main_page():
                         {"role": "user", "content": prompt}
                     ]
                 )
-                weekly_meal_plan = response['choices'][0]['message']['content'].strip()
+                weekly_meal_plan = response.choices[0].message.content.strip()
 
                 # Save or update the meal plan
                 conn = sqlite3.connect('bodari_users.db')
