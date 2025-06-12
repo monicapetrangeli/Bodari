@@ -638,10 +638,25 @@ def main_page():
                             ingredients[k.strip()] = v.strip()
 
                     # Create OpenAI prompt
-                    prompt = f"Estimate the total protein (g), fat (g), carbs (g), and calories for a meal named '{meal_name}' made of the following ingredients:\n"
+                    prompt = f"""Estimate the total protein (g), fat (g), carbs (g), and calories for a meal named '{meal_name}' made of the following ingredients:
+                    """
                     for ing, qty in ingredients.items():
                         prompt += f"- {ing}: {qty}\n"
-
+                    
+                    prompt += """
+                    Please respond in the following format:
+                    Protein: XXg  
+                    Fat: XXg  
+                    Carbs: XXg  
+                    Calories: XXX
+                    
+                    Example:
+                    Protein: 30g  
+                    Fat: 15g  
+                    Carbs: 40g  
+                    Calories: 500
+                    """
+                    
                     try:
                         response = client.chat.completions.create(
                             model="gpt-4",
