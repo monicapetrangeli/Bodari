@@ -669,19 +669,15 @@ def main_page():
                         # Example reply: "Protein: 35g, Fat: 12g, Carbs: 40g, Calories: 480"
 
                         import re
-                        protein_match = re.search(r"protein[:\-]?\s*(\d+)", reply, re.IGNORECASE)
-                        fat_match = re.search(r"fat[:\-]?\s*(\d+)", reply, re.IGNORECASE)
-                        carbs_match = re.search(r"carbs?[:\-]?\s*(\d+)", reply, re.IGNORECASE)
-                        calories_match = re.search(r"calories[:\-]?\s*(\d+)", reply, re.IGNORECASE)
+                        def extract_macro(name, text):
+                            pattern = rf"{name}[:\-]?\s*(\d+)"
+                            match = re.search(pattern, text, re.IGNORECASE)
+                            return float(match.group(1)) if match else 0.0
                         
-                        if protein_match and fat_match and carbs_match and calories_match:
-                            protein = float(protein_match.group(1))
-                            fat = float(fat_match.group(1))
-                            carbs = float(carbs_match.group(1))
-                            calories = float(calories_match.group(1))
-                        else:
-                            st.error("Could not extract all macros from AI reply. Please try again.")
-                            st.stop()
+                        protein = extract_macro("protein", reply)
+                        fat = extract_macro("fat", reply)
+                        carbs = extract_macro("carb|carbohydrates", reply)
+                        calories = extract_macro("calories", reply)
                                      
                         # Save to DB
                         conn = sqlite3.connect("bodari_users.db")
