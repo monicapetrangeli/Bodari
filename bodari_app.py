@@ -650,7 +650,7 @@ def main_page():
                                 {"role": "user", "content": prompt}
                             ]
                         )
-                        reply = response['choices'][0]['message']['content']
+                        reply = response.choices[0].message.content
                         # Example reply: "Protein: 35g, Fat: 12g, Carbs: 40g, Calories: 480"
 
                         import re
