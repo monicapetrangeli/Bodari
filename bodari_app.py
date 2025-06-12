@@ -973,11 +973,15 @@ def recipes_page():
         recipes = get_all_recipes()
 
         def matches_filters(recipe):
-            diet_ok = all(d in recipe['diet'] or d == "None" for d in selected_diets) if selected_diets else True
-            ingredient_ok = any(ing in recipe['ingredients'] for ing in selected_ingredients) if selected_ingredients else True
+            diet_ok = all(d in recipe['diet'] or d == "None" for d in selected_diets)
+            ingredient_ok = any(ing in recipe['ingredients'] for ing in selected_ingredients)
             return diet_ok and ingredient_ok
 
-        filtered_recipes = [r for r in recipes if matches_filters(r)]
+        if selected_diets or selected_ingredients:
+            filtered_recipes = [r for r in recipes if matches_filters(r)]
+        else:
+            filtered_recipes = recipes
+
 
         for recipe in filtered_recipes:
             with st.container():
