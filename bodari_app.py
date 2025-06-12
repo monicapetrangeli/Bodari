@@ -4,6 +4,7 @@ import streamlit as st
 from streamlit import session_state as state
 from datetime import date, time, timedelta
 import openai
+from openai import OpenAI
 import numpy as np
 from PIL import Image
 from io import BytesIO
@@ -193,6 +194,7 @@ def populate_mock_recipes():
         
 # -------------------- Open AI --------------------
 openai.api_key = st.secrets["openai"]["api_key"]
+client = OpenAI(api_key=openai.api_key)
 
 # -------------------- Calories Formula --------------------
 def calories_formula(height, weight, age, gender, activity_level, goal=None):
@@ -627,8 +629,8 @@ def main_page():
                     prompt += f"- {ing}: {qty}\n"
 
                 try:
-                    response = openai.ChatCompletion.create(
-                        model="gpt-3.5-turbo",
+                    response = client.chat.completions.create(
+                        model="gpt-4",
                         messages=[
                             {"role": "system", "content": "You are a nutritionist assistant that estimates macronutrients."},
                             {"role": "user", "content": prompt}
@@ -818,8 +820,8 @@ def main_page():
         """
 
         try:
-            response = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",
+            response = client.chat.completions.create(
+                model="gpt-4",
                 messages=[
                     {"role": "system", "content": "You are a nutritionist assistant that creates healthy and balanced weekly meal plans."},
                     {"role": "user", "content": prompt}
