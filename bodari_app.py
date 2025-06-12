@@ -977,11 +977,27 @@ def recipes_page():
             ingredient_ok = any(ing in recipe['ingredients'] for ing in selected_ingredients) if selected_ingredients else True
             return diet_ok and ingredient_ok
 
-        filtered_recipes = [r for r in recipes if matches_filters(r)]
-
-        if not filtered_recipes:
-            st.warning("⚠️ No recipes found for selected filters.")
-            return
+        # Remove duplicates based on title and ingredients
+        unique = {}
+        for r in recipes:
+            key = (r['title'].strip().lower(), json.dumps(r['ingredients'], sort_keys=True))
+            if key not in unique:
+                unique[key] = r
+        recipes = list(unique.values())
+        
+        def matches_filters(recipe):
+            diet_ok = all(d in recipe['diet'] or d == "None" for d in selected_diets) if selected_diets else True
+            ingredient_ok = any(ing in recipe['ingredients'] for ing in selected_ingredients) if selected_ingredients else True
+            return diet_ok and ingredient_ok
+        
+        # Show all recipes if no filters are applied, otherwise show filtered
+        if not selected_diets and not selected_ingredients:
+            filtered_recipes = recipes
+        else:
+            filtered_recipes = [r for r in recipes if matches_filters(r)]
+                if not filtered_recipes:
+                    st.warning("⚠️ No recipes found for selected filters.")
+                    return
 
         for recipe in filtered_recipes:
             with st.container():
