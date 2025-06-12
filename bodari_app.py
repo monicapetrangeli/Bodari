@@ -4,7 +4,6 @@ import streamlit as st
 from streamlit import session_state as state
 from datetime import date, time, timedelta
 import openai
-from config import OPENAI_API_KEY
 import numpy as np
 from PIL import Image
 from io import BytesIO
@@ -193,7 +192,7 @@ def populate_mock_recipes():
         insert_recipe(r)
         
 # -------------------- Open AI --------------------
-openai.api_key=OPENAI_API_KEY
+openai.api_key = os.getenv("OPENAI_API_KEY")
 
 # -------------------- Calories Formula --------------------
 def calories_formula(height, weight, age, gender, activity_level, goal=None):
