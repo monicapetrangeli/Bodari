@@ -383,7 +383,8 @@ div[data-testid="stExpander"] > details {
 """, unsafe_allow_html=True)
 
 # -------------------- Sign In page --------------------
-LOGO_PATH = Path("./bodari_logo.png")
+LOGO_TITLE = Path("./bodari_logo.png")
+LOGO_IMAGE= Path("./bodari_logo_main.png")
 
 def sign_in():
     # ------------- aesthetic ---------
@@ -401,8 +402,12 @@ def sign_in():
     )
     
     # Show logo at top
-    if LOGO_PATH.exists():
-        st.image(str(LOGO_PATH), width=200)  # adjust width for aesthetic
+    col_image, col_title = st.columns([3,7])
+    if LOGO_TITLE.exists() and LOGO_IMAGE.exists():
+        with col_image:
+            st.image(str(LOGO_IMAGE), width=300)  # adjust width for aesthetic
+        with col_title:
+            st.image(str(LOGO_TITLE), width=300)
 
     email = st.text_input("Email", placeholder="user@example.com")
     password = st.text_input("Password", type="password", placeholder="Enter your password")
@@ -445,8 +450,12 @@ def create_account():
     )
 
     # Show logo at top
-    if LOGO_PATH.exists():
-        st.image(str(LOGO_PATH), width=200)  # same width as sign-in page
+    col_image, col_title = st.columns([3,7])
+    if LOGO_TITLE.exists() and LOGO_IMAGE.exists():
+        with col_image:
+            st.image(str(LOGO_IMAGE), width=300)  # adjust width for aesthetic
+        with col_title:
+            st.image(str(LOGO_TITLE), width=300)
 
     email = st.text_input("Email", value=st.session_state.get('email', ''), placeholder="user@example.com")
     password = st.text_input("Password", type="password", placeholder="Enter your password")
@@ -490,7 +499,13 @@ def onboarding():
     unsafe_allow_html=True
     )
 
-    st.image(str(LOGO_PATH), width=200)
+    col_image, col_title = st.columns([3,7])
+    if LOGO_TITLE.exists() and LOGO_IMAGE.exists():
+        with col_image:
+            st.image(str(LOGO_IMAGE), width=300)  # adjust width for aesthetic
+        with col_title:
+            st.image(str(LOGO_TITLE), width=300)
+
     # Check login
     user_id = st.session_state.get('user_id')
     email = st.session_state.get('email')
@@ -555,490 +570,483 @@ def main_page():
     """,
     unsafe_allow_html=True
     )
-
+    
     col1,col2=st.columns([2,8])
     with col1:
-        st.image(str(LOGO_PATH))
-
-    user_id = st.session_state.get('user_id')
-    email = st.session_state.get('email')
-
-    if not user_id:
-        st.error("User not signed in. Redirecting to sign-in...")
-        st.session_state['page'] = 'sign_in'
-        return
-
-    st.sidebar.title("Menu")
-    page = st.sidebar.radio("", ["Main", "Recipes"], index=0 if st.session_state['page'] == 'main' else 1)
-    if page.lower() != st.session_state['page']:
-        st.session_state['page'] = page.lower()
-        st.rerun()
-
-    # Display user profile
-    conn = sqlite3.connect('bodari_users.db')
-    c = conn.cursor()
-    c.execute('SELECT * FROM user_account WHERE user_id = ?', (user_id,))
-    profile = c.fetchone()
-    conn.close()
-
-    if not profile:
-        st.warning("Profile not found. Please complete onboarding.")
-        st.session_state['page'] = 'onboarding'
-        return
+        st.image(str(LOGO_IMAGE), width=300)
+    with col2:
+        st.image(str(LOGO_TITLE), width=300)
     
-    id, name, dob, gender, height, weight, activity_level, goal, timeline, dietary_restrictions = profile[0:10]
-    dietary_restrictions_list = dietary_restrictions.split(',') if dietary_restrictions else []
+    tab1, tab2 = st.tabs(['Main','Recipes'])
+    with tab1:
 
-    # Ensure dob is a date object
-    if isinstance(dob, str):
-        from datetime import datetime
-        dob = datetime.strptime(dob, "%Y-%m-%d").date()
-    
-    age = calculate_age(dob)
+        user_id = st.session_state.get('user_id')
+        email = st.session_state.get('email')
 
-    row1_col1, row1_col2 = st.columns([6, 2])
-    with row1_col1:
-        st.markdown(f"## Hello, {name}!")
-    with row1_col2:
-        if st.button("➕ Add Meal"):
-            st.session_state["show_add_meal_form"] = True
+        if not user_id:
+            st.error("User not signed in. Redirecting to sign-in...")
+            st.session_state['page'] = 'sign_in'
+            return
 
-    if st.session_state.get("show_add_meal_form", False):
-        st.markdown("### Add a Meal You Ate")
-        with st.form("add_meal_form"):
-            meal_name = st.text_input("Meal name (e.g. Chicken Wrap, Pasta Bowl)")
-            ingredients_raw = st.text_area("Ingredients and quantities (e.g. Chicken: 150g\\nRice: 100g)")
-            meal_date = st.date_input("Date", value=date.today())
-            submitted = st.form_submit_button("Save Meal")
-
-            if submitted:
-                if not meal_name or not ingredients_raw:
-                    st.error("Please fill in all fields.")
-                    st.stop()
-
-                # Parse ingredients
-                ingredients = {}
-                for line in ingredients_raw.strip().split("\n"):
-                    if ":" in line:
-                        k, v = line.split(":", 1)
-                        ingredients[k.strip()] = v.strip()
-
-                # Create OpenAI prompt
-                prompt = f"Estimate the total protein (g), fat (g), carbs (g), and calories for a meal named '{meal_name}' made of the following ingredients:\n"
-                for ing, qty in ingredients.items():
-                    prompt += f"- {ing}: {qty}\n"
-
-                try:
-                    response = client.chat.completions.create(
-                        model="gpt-4",
-                        messages=[
-                            {"role": "system", "content": "You are a nutritionist assistant that estimates macronutrients."},
-                            {"role": "user", "content": prompt}
-                        ]
-                    )
-                    reply = response['choices'][0]['message']['content']
-                    # Example reply: "Protein: 35g, Fat: 12g, Carbs: 40g, Calories: 480"
-
-                    import re
-                    protein = float(re.search(r"protein[:\-]?\s*(\d+)", reply, re.I).group(1))
-                    fat = float(re.search(r"fat[:\-]?\s*(\d+)", reply, re.I).group(1))
-                    carbs = float(re.search(r"carbs?[:\-]?\s*(\d+)", reply, re.I).group(1))
-                    calories = float(re.search(r"calories[:\-]?\s*(\d+)", reply, re.I).group(1))
-
-                    # Save to DB
-                    conn = sqlite3.connect("bodari_users.db")
-                    c = conn.cursor()
-                    c.execute("""
-                        INSERT INTO user_meals (user_id, date, meal_name, ingredients, protein, fat, carbs, calories)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                    """, (
-                        user_id, meal_date, meal_name, json.dumps(ingredients),
-                        protein, fat, carbs, calories
-                    ))
-                    conn.commit()
-                    conn.close()
-
-                    st.success(f"Meal '{meal_name}' saved with estimated macros!")
-                    st.session_state["show_add_meal_form"] = False
-                    st.rerun()
-
-                except Exception as e:
-                    st.error(f"OpenAI estimation failed: {e}")
-                    
-    st.markdown("<div style='margin-top: 32px;'></div>", unsafe_allow_html=True)
-
-    # Calculate daily calories and macros
-    daily_calories = calories_formula(height, weight, age, gender, activity_level, goal)
-    macros = macros_formula(daily_calories, goal)
-
-    # --- Calculate Consumed Calories and Macros ---
-    conn = sqlite3.connect("bodari_users.db")
-    c = conn.cursor()
-    c.execute("SELECT protein, fat, carbs, calories FROM user_meals WHERE user_id = ? AND date = ?", (user_id, date.today()))
-    today_meals = c.fetchall()
-    conn.close()
-
-    consumed = {'calories': 0, 'protein': 0, 'fat': 0, 'carbs': 0}
-    for meal in today_meals:
-        consumed['protein'] += meal[0] or 0
-        consumed['fat'] += meal[1] or 0
-        consumed['carbs'] += meal[2] or 0
-        consumed['calories'] += meal[3] or 0
-
-    remaining = {
-        'calories': max(daily_calories - consumed['calories'], 0),
-        'protein': max(macros['protein'] - consumed['protein'], 0),
-        'fat': max(macros['fat'] - consumed['fat'], 0),
-        'carbs': max(macros['carbs'] - consumed['carbs'], 0)
-    }
-
-    # --- Display Calories ---
-    st.markdown(
-    f"""
-    <div style='font-size: 32px; color: #e57373; font-weight: bold; text-align: center;'>
-        {consumed['calories']} kcal / {daily_calories} kcal
-    </div>
-    """,
-    unsafe_allow_html=True
-    )
-
-    # --- Display Macros as Progress Bars ---
-    
-    # Set total macro sum for relative percentage bars
-    total_macros = macros['protein'] + macros['fat'] + macros['carbs']
-
-    # Function to render a macro bar
-    def macro_bar(name, total, consumed_val, remaining_val, color):
-        st.markdown(
-            f"""
-            <div style='margin-bottom: 14px;'>
-                <div style='font-weight: 500; margin-bottom: 4px;'>{name}</div>
-                <div style='background-color: #e0e0e0; border-radius: 10px; height: 20px; width: 100%; position: relative;'>
-                    <div style='width: {min(consumed_val/total*100 if total else 0,100)}%; background-color: {color}; height: 100%; border-radius: 10px; display: flex; align-items: center; justify-content: flex-end; padding-right: 8px; color: white; font-size: 14px;'>
-                        {consumed_val}g
-                    </div>
-                    <div style='position: absolute; right: 8px; top: 0; height: 100%; display: flex; align-items: center; color: #4b2596; font-size: 14px;'>
-                        {remaining_val}g
-                    </div>
-                </div>
-            </div>
-            """, unsafe_allow_html=True
-        )
-
-    macro_bar("Protein", macros['protein'], consumed['protein'], remaining['protein'], "#4b2596")
-    macro_bar("Fat", macros['fat'], consumed['fat'], remaining['fat'], "#14b3ad")
-    macro_bar("Carbs", macros['carbs'], consumed['carbs'], remaining['carbs'], "#fbad05")
-
-    
-    # -------------------- Pantry Ingredients Section --------------------
-    st.markdown("<div style='margin-top: 32px;'></div>", unsafe_allow_html=True)
-    st.markdown("### What's in your pantry?")
-    st.markdown("Select the ingredients you currently have. You can optionally specify the quantity and unit for each.")
-
-    # Define a list of common ingredients to select from
-    common_ingredients = [
-        "Eggs", "Milk", "Cheese", "Bread", "Spinach", "Chicken Breast", "Rice", "Oats",
-        "Banana", "Apple", "Tomato", "Carrot", "Potato", "Yogurt", "Beans", "Lentils", "Broccoli"
-    ]
-
-    selected_ingredients = st.multiselect("Select available ingredients", options=common_ingredients)
-
-    pantry_data = []
-    for ingredient in selected_ingredients:
-        with st.expander(f"{ingredient} details"):
-            quantity = st.number_input(f"Quantity of {ingredient}", min_value=0.0, step=10.0, format="%.2f", key=f"{ingredient}_qty")
-            unit = st.selectbox(f"Unit for {ingredient}", ["grams", "kg", "ml", "liters", "cups", "pieces"], key=f"{ingredient}_unit")
-            pantry_data.append((user_id, date.today(), ingredient, quantity if quantity > 0 else None, unit if quantity > 0 else "units"))
-
-    if st.button("Save Pantry"):
+        # Display user profile
         conn = sqlite3.connect('bodari_users.db')
         c = conn.cursor()
-        for entry in pantry_data:
-            try:
-                c.execute('''
-                    INSERT OR REPLACE INTO grocery_ingredients (user_id, date, ingredient, quantity, unit)
-                    VALUES (?, ?, ?, ?, ?)
-                ''', entry)
-            except Exception as e:
-                st.error(f"Error saving {entry[2]}: {e}")
-        conn.commit()
+        c.execute('SELECT * FROM user_account WHERE user_id = ?', (user_id,))
+        profile = c.fetchone()
         conn.close()
-        st.success("✅ Pantry ingredients saved successfully!")
-        st.markdown("<br>", unsafe_allow_html=True)
-    
-    # -------------------- Weekly Meal Plan Section --------------------
-    st.markdown("<div style='margin-top: 32px;'></div>", unsafe_allow_html=True)
-    st.markdown("### Weekly Meal Plan")
-    st.markdown("Let's create a weekly meal plan tailored to your needs:")
 
-    week_start = get_current_week_start()
+        if not profile:
+            st.warning("Profile not found. Please complete onboarding.")
+            st.session_state['page'] = 'onboarding'
+            return
+        
+        id, name, dob, gender, height, weight, activity_level, goal, timeline, dietary_restrictions = profile[0:10]
+        dietary_restrictions_list = dietary_restrictions.split(',') if dietary_restrictions else []
 
-    # Check pantry ingredients for today
-    conn = sqlite3.connect('bodari_users.db')
-    c = conn.cursor()
-    c.execute('''
-        SELECT ingredient, quantity, unit FROM grocery_ingredients
-        WHERE user_id = ? AND date = ?
-    ''', (user_id, date.today()))
-    pantry_rows = c.fetchall()
-    conn.close()
+        # Ensure dob is a date object
+        if isinstance(dob, str):
+            from datetime import datetime
+            dob = datetime.strptime(dob, "%Y-%m-%d").date()
+        
+        age = calculate_age(dob)
 
-    pantry_ingredients_str = ""
-    if pantry_rows:
-        pantry_ingredients_str = "\n".join(
-            [f"{ingredient} ({quantity} {unit})" for ingredient, quantity, unit in pantry_rows if quantity]
+        row1_col1, row1_col2 = st.columns([6, 2])
+        with row1_col1:
+            st.markdown(f"## Hello, {name}!")
+        with row1_col2:
+            if st.button("➕ Add Meal"):
+                st.session_state["show_add_meal_form"] = True
+
+        if st.session_state.get("show_add_meal_form", False):
+            st.markdown("### Add a Meal You Ate")
+            with st.form("add_meal_form"):
+                meal_name = st.text_input("Meal name (e.g. Chicken Wrap, Pasta Bowl)")
+                ingredients_raw = st.text_area("Ingredients and quantities (e.g. Chicken: 150g\\nRice: 100g)")
+                meal_date = st.date_input("Date", value=date.today())
+                submitted = st.form_submit_button("Save Meal")
+
+                if submitted:
+                    if not meal_name or not ingredients_raw:
+                        st.error("Please fill in all fields.")
+                        st.stop()
+
+                    # Parse ingredients
+                    ingredients = {}
+                    for line in ingredients_raw.strip().split("\n"):
+                        if ":" in line:
+                            k, v = line.split(":", 1)
+                            ingredients[k.strip()] = v.strip()
+
+                    # Create OpenAI prompt
+                    prompt = f"Estimate the total protein (g), fat (g), carbs (g), and calories for a meal named '{meal_name}' made of the following ingredients:\n"
+                    for ing, qty in ingredients.items():
+                        prompt += f"- {ing}: {qty}\n"
+
+                    try:
+                        response = client.chat.completions.create(
+                            model="gpt-4",
+                            messages=[
+                                {"role": "system", "content": "You are a nutritionist assistant that estimates macronutrients."},
+                                {"role": "user", "content": prompt}
+                            ]
+                        )
+                        reply = response['choices'][0]['message']['content']
+                        # Example reply: "Protein: 35g, Fat: 12g, Carbs: 40g, Calories: 480"
+
+                        import re
+                        protein = float(re.search(r"protein[:\-]?\s*(\d+)", reply, re.I).group(1))
+                        fat = float(re.search(r"fat[:\-]?\s*(\d+)", reply, re.I).group(1))
+                        carbs = float(re.search(r"carbs?[:\-]?\s*(\d+)", reply, re.I).group(1))
+                        calories = float(re.search(r"calories[:\-]?\s*(\d+)", reply, re.I).group(1))
+
+                        # Save to DB
+                        conn = sqlite3.connect("bodari_users.db")
+                        c = conn.cursor()
+                        c.execute("""
+                            INSERT INTO user_meals (user_id, date, meal_name, ingredients, protein, fat, carbs, calories)
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                        """, (
+                            user_id, meal_date, meal_name, json.dumps(ingredients),
+                            protein, fat, carbs, calories
+                        ))
+                        conn.commit()
+                        conn.close()
+
+                        st.success(f"Meal '{meal_name}' saved with estimated macros!")
+                        st.session_state["show_add_meal_form"] = False
+                        st.rerun()
+
+                    except Exception as e:
+                        st.error(f"OpenAI estimation failed: {e}")
+                        
+        st.markdown("<div style='margin-top: 32px;'></div>", unsafe_allow_html=True)
+
+        # Calculate daily calories and macros
+        daily_calories = calories_formula(height, weight, age, gender, activity_level, goal)
+        macros = macros_formula(daily_calories, goal)
+
+        # --- Calculate Consumed Calories and Macros ---
+        conn = sqlite3.connect("bodari_users.db")
+        c = conn.cursor()
+        c.execute("SELECT protein, fat, carbs, calories FROM user_meals WHERE user_id = ? AND date = ?", (user_id, date.today()))
+        today_meals = c.fetchall()
+        conn.close()
+
+        consumed = {'calories': 0, 'protein': 0, 'fat': 0, 'carbs': 0}
+        for meal in today_meals:
+            consumed['protein'] += meal[0] or 0
+            consumed['fat'] += meal[1] or 0
+            consumed['carbs'] += meal[2] or 0
+            consumed['calories'] += meal[3] or 0
+
+        remaining = {
+            'calories': max(daily_calories - consumed['calories'], 0),
+            'protein': max(macros['protein'] - consumed['protein'], 0),
+            'fat': max(macros['fat'] - consumed['fat'], 0),
+            'carbs': max(macros['carbs'] - consumed['carbs'], 0)
+        }
+
+        # --- Display Calories ---
+        st.markdown(
+        f"""
+        <div style='font-size: 32px; color: #e57373; font-weight: bold; text-align: center;'>
+            {consumed['calories']} kcal / {daily_calories} kcal
+        </div>
+        """,
+        unsafe_allow_html=True
         )
 
-    # If there's a cached meal plan and pantry is unchanged, load it
-    conn = sqlite3.connect('bodari_users.db')
-    c = conn.cursor()
-    c.execute('''
-        SELECT meal_plan FROM weekly_meal_plan
-        WHERE user_id = ? AND week_start = ?
-    ''', (user_id, week_start))
-    row = c.fetchone()
-    conn.close()
-
-    # If meal plan already exists and pantry wasn't updated (assumes user hit Save Pantry first), load existing
-    if row and not pantry_ingredients_str:
-        weekly_meal_plan = row[0]
-    else:
-        # Compose the prompt
-        prompt = f"""
-        The user has the following dietary restrictions: {dietary_restrictions_list} and needs to consume {daily_calories} calories daily with the following macros composition in grams: {macros}.
-        """
+        # --- Display Macros as Progress Bars ---
         
-        if pantry_ingredients_str:
-            prompt += f"\nThe user currently has the following ingredients available in their pantry: {pantry_ingredients_str}. Try to incorporate them into the meal plan when possible, but you can also use other ingredients to complete the meals."
+        # Set total macro sum for relative percentage bars
+        total_macros = macros['protein'] + macros['fat'] + macros['carbs']
 
-        prompt += """
-        Please create a weekly meal plan with breakfast, lunch, dinner, and two snacks for each day of the week. 
-        Add the weight of each ingredient for each meal. 
-        The meal plan should be healthy, balanced, and diverse, and meet the user's dietary restrictions and caloric needs.
-        Present the plan in a table format with columns for each meal and rows for the days of the week (Monday to Sunday). 
-        Each cell should include the meal description with ingredients and their quantities.
-        """
-
-        try:
-            response = client.chat.completions.create(
-                model="gpt-4",
-                messages=[
-                    {"role": "system", "content": "You are a nutritionist assistant that creates healthy and balanced weekly meal plans."},
-                    {"role": "user", "content": prompt}
-                ]
+        # Function to render a macro bar
+        def macro_bar(name, total, consumed_val, remaining_val, color):
+            st.markdown(
+                f"""
+                <div style='margin-bottom: 14px;'>
+                    <div style='font-weight: 500; margin-bottom: 4px;'>{name}</div>
+                    <div style='background-color: #e0e0e0; border-radius: 10px; height: 20px; width: 100%; position: relative;'>
+                        <div style='width: {min(consumed_val/total*100 if total else 0,100)}%; background-color: {color}; height: 100%; border-radius: 10px; display: flex; align-items: center; justify-content: flex-end; padding-right: 8px; color: white; font-size: 14px;'>
+                            {consumed_val}g
+                        </div>
+                        <div style='position: absolute; right: 8px; top: 0; height: 100%; display: flex; align-items: center; color: #4b2596; font-size: 14px;'>
+                            {remaining_val}g
+                        </div>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True
             )
-            weekly_meal_plan = response['choices'][0]['message']['content'].strip()
 
-            # Save or update the meal plan
+        macro_bar("Protein", macros['protein'], consumed['protein'], remaining['protein'], "#4b2596")
+        macro_bar("Fat", macros['fat'], consumed['fat'], remaining['fat'], "#14b3ad")
+        macro_bar("Carbs", macros['carbs'], consumed['carbs'], remaining['carbs'], "#fbad05")
+
+        
+        # -------------------- Pantry Ingredients Section --------------------
+        st.markdown("<div style='margin-top: 32px;'></div>", unsafe_allow_html=True)
+        st.markdown("### What's in your pantry?")
+        st.markdown("Select the ingredients you currently have. You can optionally specify the quantity and unit for each.")
+
+        # Define a list of common ingredients to select from
+        common_ingredients = [
+            "Eggs", "Milk", "Cheese", "Bread", "Spinach", "Chicken Breast", "Rice", "Oats",
+            "Banana", "Apple", "Tomato", "Carrot", "Potato", "Yogurt", "Beans", "Lentils", "Broccoli"
+        ]
+
+        selected_ingredients = st.multiselect("Select available ingredients", options=common_ingredients, key="pantry_ingredients")
+
+        pantry_data = []
+        for ingredient in selected_ingredients:
+            with st.expander(f"{ingredient} details"):
+                quantity = st.number_input(f"Quantity of {ingredient}", min_value=0.0, step=10.0, format="%.2f", key=f"{ingredient}_qty")
+                unit = st.selectbox(f"Unit for {ingredient}", ["grams", "kg", "ml", "liters", "cups", "pieces"], key=f"{ingredient}_unit")
+                pantry_data.append((user_id, date.today(), ingredient, quantity if quantity > 0 else None, unit if quantity > 0 else "units"))
+
+        if st.button("Save Pantry"):
             conn = sqlite3.connect('bodari_users.db')
             c = conn.cursor()
-            c.execute('''
-                INSERT OR REPLACE INTO weekly_meal_plan (user_id, week_start, meal_plan)
-                VALUES (?, ?, ?)
-            ''', (user_id, week_start, weekly_meal_plan))
+            for entry in pantry_data:
+                try:
+                    c.execute('''
+                        INSERT OR REPLACE INTO grocery_ingredients (user_id, date, ingredient, quantity, unit)
+                        VALUES (?, ?, ?, ?, ?)
+                    ''', entry)
+                except Exception as e:
+                    st.error(f"Error saving {entry[2]}: {e}")
             conn.commit()
             conn.close()
-        except openai.error.RateLimitError:
-            st.warning("Rate limit reached. Waiting for 20 seconds before retrying...")
-            time.sleep(20)
-            return
-        except Exception as e:
-            st.error(f"Error in creating your weekly meal plan with OpenAI: {e}")
-            return
+            st.success("Pantry ingredients saved successfully!")
+            st.markdown("<br>", unsafe_allow_html=True)
+        
+        # -------------------- Weekly Meal Plan Section --------------------
+        st.markdown("<div style='margin-top: 32px;'></div>", unsafe_allow_html=True)
+        st.markdown("### Weekly Meal Plan")
+        st.markdown("Let's create a weekly meal plan tailored to your needs:")
 
-    st.markdown(weekly_meal_plan)
+        week_start = get_current_week_start()
 
-    st.markdown("<div style='margin-top: 32px;'></div>", unsafe_allow_html=True)
-    st.markdown("### Logged Meals")
+        # Check pantry ingredients for today
+        conn = sqlite3.connect('bodari_users.db')
+        c = conn.cursor()
+        c.execute('''
+            SELECT ingredient, quantity, unit FROM grocery_ingredients
+            WHERE user_id = ? AND date = ?
+        ''', (user_id, date.today()))
+        pantry_rows = c.fetchall()
+        conn.close()
 
-    conn = sqlite3.connect("bodari_users.db")
-    c = conn.cursor()
-    c.execute("SELECT date, meal_name, protein, fat, carbs, calories FROM user_meals WHERE user_id = ? ORDER BY date DESC", (user_id,))
-    meals = c.fetchall()
-    conn.close()
+        pantry_ingredients_str = ""
+        if pantry_rows:
+            pantry_ingredients_str = "\n".join(
+                [f"{ingredient} ({quantity} {unit})" for ingredient, quantity, unit in pantry_rows if quantity]
+            )
 
-    if not meals:
-        st.info("You haven’t added any meals yet.")
-    else:
-        for meal in meals:
-            m_date, name, p, f, c_, cal = meal
-            st.markdown(f"**{m_date} – {name}**")
-            st.markdown(f"- Protein: {p}g | Fat: {f}g | Carbs: {c_}g | Calories: {cal} kcal")
+        # If there's a cached meal plan and pantry is unchanged, load it
+        conn = sqlite3.connect('bodari_users.db')
+        c = conn.cursor()
+        c.execute('''
+            SELECT meal_plan FROM weekly_meal_plan
+            WHERE user_id = ? AND week_start = ?
+        ''', (user_id, week_start))
+        row = c.fetchone()
+        conn.close()
+
+        # If meal plan already exists and pantry wasn't updated (assumes user hit Save Pantry first), load existing
+        if row and not pantry_ingredients_str:
+            weekly_meal_plan = row[0]
+        else:
+            # Compose the prompt
+            prompt = f"""
+            The user has the following dietary restrictions: {dietary_restrictions_list} and needs to consume {daily_calories} calories daily with the following macros composition in grams: {macros}.
+            """
+            
+            if pantry_ingredients_str:
+                prompt += f"\nThe user currently has the following ingredients available in their pantry: {pantry_ingredients_str}. Try to incorporate them into the meal plan when possible, but you can also use other ingredients to complete the meals."
+
+            prompt += """
+            Please create a weekly meal plan with breakfast, lunch, dinner, and two snacks for each day of the week. 
+            Add the weight of each ingredient for each meal. 
+            The meal plan should be healthy, balanced, and diverse, and meet the user's dietary restrictions and caloric needs.
+            Present the plan in a table format with columns for each meal and rows for the days of the week (Monday to Sunday). 
+            Each cell should include the meal description with ingredients and their quantities.
+            """
+
+            try:
+                response = client.chat.completions.create(
+                    model="gpt-4",
+                    messages=[
+                        {"role": "system", "content": "You are a nutritionist assistant that creates healthy and balanced weekly meal plans."},
+                        {"role": "user", "content": prompt}
+                    ]
+                )
+                weekly_meal_plan = response['choices'][0]['message']['content'].strip()
+
+                # Save or update the meal plan
+                conn = sqlite3.connect('bodari_users.db')
+                c = conn.cursor()
+                c.execute('''
+                    INSERT OR REPLACE INTO weekly_meal_plan (user_id, week_start, meal_plan)
+                    VALUES (?, ?, ?)
+                ''', (user_id, week_start, weekly_meal_plan))
+                conn.commit()
+                conn.close()
+            except openai.error.RateLimitError:
+                st.warning("Rate limit reached. Waiting for 20 seconds before retrying...")
+                time.sleep(20)
+                return
+            except Exception as e:
+                st.error(f"Error in creating your weekly meal plan with OpenAI: {e}")
+                return
+
+        st.markdown(weekly_meal_plan)
+
+        st.markdown("<div style='margin-top: 32px;'></div>", unsafe_allow_html=True)
+        st.markdown("### Logged Meals")
+
+        conn = sqlite3.connect("bodari_users.db")
+        c = conn.cursor()
+        c.execute("SELECT date, meal_name, protein, fat, carbs, calories FROM user_meals WHERE user_id = ? ORDER BY date DESC", (user_id,))
+        meals = c.fetchall()
+        conn.close()
+
+        if not meals:
+            st.info("You haven’t added any meals yet.")
+        else:
+            for meal in meals:
+                m_date, name, p, f, c_, cal = meal
+                st.markdown(f"**{m_date} – {name}**")
+                st.markdown(f"- Protein: {p}g | Fat: {f}g | Carbs: {c_}g | Calories: {cal} kcal")
 
 
 # -------------------- Recipes Page--------------------
-def recipes_page():
+    with tab2:
 
-    st.sidebar.title("Menu")
-    page = st.sidebar.radio("", ["Main", "Recipes"], index=0 if st.session_state['page'] == 'main' else 1)
-    if page.lower() != st.session_state['page']:
-        st.session_state['page'] = page.lower()
-        st.rerun()
+        # Title and Add Recipe button aligned right
+        cols = st.columns([8, 2])
+        cols[0].title("Recipe Finder")
+        add_clicked = cols[1].button("➕ Add Recipe")
 
-    # Title and Add Recipe button aligned right
-    cols = st.columns([8, 2])
-    cols[0].title("Recipe Finder")
-    add_clicked = cols[1].button("➕ Add Recipe")
+        if add_clicked or st.session_state.get("show_add_recipe_form", False):
+            st.session_state["show_add_recipe_form"] = True
+            st.subheader("Add a New Recipe")
 
-    if add_clicked or st.session_state.get("show_add_recipe_form", False):
-        st.session_state["show_add_recipe_form"] = True
-        st.subheader("Add a New Recipe")
-
-        with st.form("add_recipe_form"):
-            title = st.text_input("Recipe Title")
-            image_file = st.file_uploader("Upload an image for the recipe", type=["png", "jpg", "jpeg"])
-            diet_options = ['Vegetarian', 'Vegan', 'Gluten-free', 'Dairy-free', 'Nut-free', 'None']
-            diet = st.multiselect("Dietary Preferences", diet_options)
-            
-            st.markdown("### Ingredients (enter as `Ingredient: Quantity`)")
-            ingredients_raw = st.text_area(
-                "List ingredients separated by newline, e.g.:\nChicken Breast: 150g\nSpinach: 50g"
-            )
-
-            calories = st.number_input("Calories (kcal)", min_value=0)
-            protein = st.number_input("Protein (g)", min_value=0)
-            fat = st.number_input("Fat (g)", min_value=0)
-            carbs = st.number_input("Carbs (g)", min_value=0)
-            instructions = st.text_area("Instructions")
-
-            col_submit, col_exit = st.columns([1,1])
-            submitted = col_submit.form_submit_button("Save Recipe")
-            exit_clicked = col_exit.form_submit_button("Exit")
-
-            if exit_clicked:
-                st.session_state["show_add_recipe_form"] = False
-                st.rerun()
-
-            if submitted:
-                if not title:
-                    st.error("Please enter a recipe title.")
-                    st.stop()
-                if not image_file:
-                    st.error("Please upload an image.")
-                    st.stop()
-
-                # Parse ingredients
-                ingredients = {}
-                for line in ingredients_raw.split("\n"):
-                    if ':' in line:
-                        key, val = line.split(':', 1)
-                        ingredients[key.strip()] = val.strip()
-
-                # Save uploaded image locally
-                upload_dir = Path("uploaded_images")
-                upload_dir.mkdir(exist_ok=True)
+            with st.form("add_recipe_form"):
+                title = st.text_input("Recipe Title")
+                image_file = st.file_uploader("Upload an image for the recipe", type=["png", "jpg", "jpeg"])
+                diet_options = ['Vegetarian', 'Vegan', 'Gluten-free', 'Dairy-free', 'Nut-free', 'None']
+                diet = st.multiselect("Dietary Preferences", diet_options)
                 
-                file_extension = image_file.name.split('.')[-1]
-                safe_title = "".join(x for x in title if x.isalnum() or x in (" ", "_")).rstrip()
-                filename = f"{safe_title}.{file_extension}"
-                filepath = upload_dir / filename
-                
-                with open(filepath, "wb") as f:
-                    f.write(image_file.getbuffer())
-                
-                image_path = str(filepath)
-
-                new_recipe = {
-                    "title": title,
-                    "image": image_path,  # local image path
-                    "diet": diet,
-                    "ingredients": ingredients,
-                    "calories": calories,
-                    "macros": {
-                        "protein": protein,
-                        "fat": fat,
-                        "carbs": carbs
-                    },
-                    "instructions": instructions
-                }
-
-                insert_recipe(new_recipe)
-
-                st.success("Recipe added successfully!")
-                st.session_state["show_add_recipe_form"] = False
-                st.rerun()
-
-    else:
-        with st.container():
-            with st.expander(" Filters ", expanded=True):
-                all_diet_types = ['Vegetarian', 'Vegan', 'Gluten-free', 'Dairy-free', 'Nut-free', 'None']
-                selected_diets = st.multiselect("Select dietary preferences", all_diet_types)
-
-                all_ingredients = [
-                    "Eggs", "Milk", "Cheese", "Bread", "Spinach", "Chicken Breast", "Rice", "Oats",
-                    "Banana", "Apple", "Tomato", "Carrot", "Potato", "Yogurt", "Beans", "Lentils", "Broccoli"
-                ]
-                selected_ingredients = st.multiselect("Select available ingredients", all_ingredients)
-
-        st.markdown("""<hr style='border:1px solid #ddd; margin:20px 0;'>""", unsafe_allow_html=True)
-
-        recipes = get_all_recipes()
-
-        def matches_filters(recipe):
-            diet_ok = all(d in recipe['diet'] or d == "None" for d in selected_diets)
-            ingredient_ok = any(ing in recipe['ingredients'] for ing in selected_ingredients)
-            return diet_ok and ingredient_ok
-
-        # Determine if filters are active
-        filters_active = bool(selected_diets or selected_ingredients)
-
-        def render_recipe(recipe):
-            with st.container():
-                st.markdown(
-                    """
-                    <div style="display: flex; gap: 20px; padding: 16px; border-radius: 16px; 
-                                background-color: #FBD89A; box-shadow: 0 2px 8px rgba(0,0,0,0.05); 
-                                margin-bottom: 20px;">
-                    """, unsafe_allow_html=True
+                st.markdown("### Ingredients (enter as `Ingredient: Quantity`)")
+                ingredients_raw = st.text_area(
+                    "List ingredients separated by newline, e.g.:\nChicken Breast: 150g\nSpinach: 50g"
                 )
-        
-                col1, col2 = st.columns([1, 3])
-                with col1:
-                    try:
-                        if recipe['image'] and os.path.exists(recipe['image']):
-                            img = Image.open(recipe['image'])
-                            st.image(img, use_column_width=True)
-                        else:
-                            img_data = requests.get(recipe['image']).content
-                            img = Image.open(BytesIO(img_data))
-                            st.image(img, use_column_width=True)
-                    except Exception:
-                        st.warning("Image could not be loaded.")
-        
-                with col2:
-                    st.markdown(f"<h4 style='margin-bottom: 0;'>{recipe['title']}</h4>", unsafe_allow_html=True)
-                    st.markdown(f"<div style='color: gray;'>Calories: {recipe['calories']} kcal</div>", unsafe_allow_html=True)
+
+                calories = st.number_input("Calories (kcal)", min_value=0)
+                protein = st.number_input("Protein (g)", min_value=0)
+                fat = st.number_input("Fat (g)", min_value=0)
+                carbs = st.number_input("Carbs (g)", min_value=0)
+                instructions = st.text_area("Instructions")
+
+                col_submit, col_exit = st.columns([1,1])
+                submitted = col_submit.form_submit_button("Save Recipe")
+                exit_clicked = col_exit.form_submit_button("Exit")
+
+                if exit_clicked:
+                    st.session_state["show_add_recipe_form"] = False
+                    st.rerun()
+
+                if submitted:
+                    if not title:
+                        st.error("Please enter a recipe title.")
+                        st.stop()
+                    if not image_file:
+                        st.error("Please upload an image.")
+                        st.stop()
+
+                    # Parse ingredients
+                    ingredients = {}
+                    for line in ingredients_raw.split("\n"):
+                        if ':' in line:
+                            key, val = line.split(':', 1)
+                            ingredients[key.strip()] = val.strip()
+
+                    # Save uploaded image locally
+                    upload_dir = Path("uploaded_images")
+                    upload_dir.mkdir(exist_ok=True)
+                    
+                    file_extension = image_file.name.split('.')[-1]
+                    safe_title = "".join(x for x in title if x.isalnum() or x in (" ", "_")).rstrip()
+                    filename = f"{safe_title}.{file_extension}"
+                    filepath = upload_dir / filename
+                    
+                    with open(filepath, "wb") as f:
+                        f.write(image_file.getbuffer())
+                    
+                    image_path = str(filepath)
+
+                    new_recipe = {
+                        "title": title,
+                        "image": image_path,  # local image path
+                        "diet": diet,
+                        "ingredients": ingredients,
+                        "calories": calories,
+                        "macros": {
+                            "protein": protein,
+                            "fat": fat,
+                            "carbs": carbs
+                        },
+                        "instructions": instructions
+                    }
+
+                    insert_recipe(new_recipe)
+
+                    st.success("Recipe added successfully!")
+                    st.session_state["show_add_recipe_form"] = False
+                    st.rerun()
+
+        else:
+            with st.container():
+                with st.expander(" Filters ", expanded=True):
+                    all_diet_types = ['Vegetarian', 'Vegan', 'Gluten-free', 'Dairy-free', 'Nut-free', 'None']
+                    selected_diets = st.multiselect("Select dietary preferences", all_diet_types)
+
+                    all_ingredients = [
+                        "Eggs", "Milk", "Cheese", "Bread", "Spinach", "Chicken Breast", "Rice", "Oats",
+                        "Banana", "Apple", "Tomato", "Carrot", "Potato", "Yogurt", "Beans", "Lentils", "Broccoli"
+                    ]
+                    selected_ingredients = st.multiselect("Select available ingredients", all_ingredients, key="recipe_filter_ingredients")
+
+            st.markdown("""<hr style='border:1px solid #ddd; margin:20px 0;'>""", unsafe_allow_html=True)
+
+            recipes = get_all_recipes()
+
+            def matches_filters(recipe):
+                diet_ok = all(d in recipe['diet'] or d == "None" for d in selected_diets)
+                ingredient_ok = any(ing in recipe['ingredients'] for ing in selected_ingredients)
+                return diet_ok and ingredient_ok
+
+            # Determine if filters are active
+            filters_active = bool(selected_diets or selected_ingredients)
+
+            def render_recipe(recipe):
+                with st.container():
                     st.markdown(
-                        f"""
-                        <div style='margin: 8px 0;'>
-                        <strong>Macros:</strong> 
-                        {recipe['macros']['protein']}g protein, 
-                        {recipe['macros']['fat']}g fat, 
-                        {recipe['macros']['carbs']}g carbs
-                        </div>
+                        """
+                        <div style="display: flex; gap: 20px; padding: 16px; border-radius: 16px; 
+                                    background-color: #FBD89A; box-shadow: 0 2px 8px rgba(0,0,0,0.05); 
+                                    margin-bottom: 20px;">
                         """, unsafe_allow_html=True
                     )
-                    with st.expander("More Information"):
-                        st.markdown("**Ingredients:**")
-                        for ing, qty in recipe['ingredients'].items():
-                            st.markdown(f"- {ing}: {qty}")
-                        st.markdown("**Instructions:**")
-                        st.markdown(recipe['instructions'])
-        
-                st.markdown("</div>", unsafe_allow_html=True)
-        
-        # Apply filtering if filters are active
-        if filters_active:
-            filtered_recipes = [r for r in recipes if matches_filters(r)]
-        
-            if not filtered_recipes:
-                st.warning("⚠️ No recipes found for selected filters.")
+            
+                    col1, col2 = st.columns([1, 3])
+                    with col1:
+                        try:
+                            if recipe['image'] and os.path.exists(recipe['image']):
+                                img = Image.open(recipe['image'])
+                                st.image(img, use_column_width=True)
+                            else:
+                                img_data = requests.get(recipe['image']).content
+                                img = Image.open(BytesIO(img_data))
+                                st.image(img, use_column_width=True)
+                        except Exception:
+                            st.warning("Image could not be loaded.")
+            
+                    with col2:
+                        st.markdown(f"<h4 style='margin-bottom: 0;'>{recipe['title']}</h4>", unsafe_allow_html=True)
+                        st.markdown(f"<div style='color: gray;'>Calories: {recipe['calories']} kcal</div>", unsafe_allow_html=True)
+                        st.markdown(
+                            f"""
+                            <div style='margin: 8px 0;'>
+                            <strong>Macros:</strong> 
+                            {recipe['macros']['protein']}g protein, 
+                            {recipe['macros']['fat']}g fat, 
+                            {recipe['macros']['carbs']}g carbs
+                            </div>
+                            """, unsafe_allow_html=True
+                        )
+                        with st.expander("More Information"):
+                            st.markdown("**Ingredients:**")
+                            for ing, qty in recipe['ingredients'].items():
+                                st.markdown(f"- {ing}: {qty}")
+                            st.markdown("**Instructions:**")
+                            st.markdown(recipe['instructions'])
+            
+                    st.markdown("</div>", unsafe_allow_html=True)
+            
+            # Apply filtering if filters are active
+            if filters_active:
+                filtered_recipes = [r for r in recipes if matches_filters(r)]
+            
+                if not filtered_recipes:
+                    st.warning("No recipes found for selected filters.")
+                else:
+                    for recipe in filtered_recipes:
+                        render_recipe(recipe)
             else:
-                for recipe in filtered_recipes:
+                for recipe in recipes:
                     render_recipe(recipe)
-        else:
-            for recipe in recipes:
-                render_recipe(recipe)
 
 # -------------------- App Initialization --------------------
 
@@ -1055,5 +1063,3 @@ elif st.session_state['page'] == 'onboarding':
     onboarding()
 elif st.session_state['page'] == 'main':
     main_page()
-elif st.session_state['page'] == 'recipes':
-    recipes_page()
