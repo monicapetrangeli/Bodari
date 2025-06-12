@@ -1031,7 +1031,6 @@ def recipes_page():
 # -------------------- App Initialization --------------------
 
 create_database()
-populate_mock_recipes()
 
 if 'page' not in st.session_state:
     st.session_state['page'] = 'sign_in'
