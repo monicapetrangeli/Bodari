@@ -979,6 +979,51 @@ def recipes_page():
 
         # Determine if filters are active
         filters_active = bool(selected_diets or selected_ingredients)
+
+        def render_recipe(recipe):
+            with st.container():
+                st.markdown(
+                    """
+                    <div style="display: flex; gap: 20px; padding: 16px; border-radius: 16px; 
+                                background-color: #FBD89A; box-shadow: 0 2px 8px rgba(0,0,0,0.05); 
+                                margin-bottom: 20px;">
+                    """, unsafe_allow_html=True
+                )
+        
+                col1, col2 = st.columns([1, 3])
+                with col1:
+                    try:
+                        if recipe['image'] and os.path.exists(recipe['image']):
+                            img = Image.open(recipe['image'])
+                            st.image(img, use_column_width=True)
+                        else:
+                            img_data = requests.get(recipe['image']).content
+                            img = Image.open(BytesIO(img_data))
+                            st.image(img, use_column_width=True)
+                    except Exception:
+                        st.warning("Image could not be loaded.")
+        
+                with col2:
+                    st.markdown(f"<h4 style='margin-bottom: 0;'>{recipe['title']}</h4>", unsafe_allow_html=True)
+                    st.markdown(f"<div style='color: gray;'>Calories: {recipe['calories']} kcal</div>", unsafe_allow_html=True)
+                    st.markdown(
+                        f"""
+                        <div style='margin: 8px 0;'>
+                        <strong>Macros:</strong> 
+                        {recipe['macros']['protein']}g protein, 
+                        {recipe['macros']['fat']}g fat, 
+                        {recipe['macros']['carbs']}g carbs
+                        </div>
+                        """, unsafe_allow_html=True
+                    )
+                    with st.expander("More Information"):
+                        st.markdown("**Ingredients:**")
+                        for ing, qty in recipe['ingredients'].items():
+                            st.markdown(f"- {ing}: {qty}")
+                        st.markdown("**Instructions:**")
+                        st.markdown(recipe['instructions'])
+        
+                st.markdown("</div>", unsafe_allow_html=True)
         
         # Apply filtering if filters are active
         if filters_active:
@@ -992,49 +1037,6 @@ def recipes_page():
         else:
             for recipe in recipes:
                 render_recipe(recipe)
-                with st.container():
-                    st.markdown(
-                        """
-                        <div style="display: flex; gap: 20px; padding: 16px; border-radius: 16px; 
-                                    background-color: #FBD89A; box-shadow: 0 2px 8px rgba(0,0,0,0.05); 
-                                    margin-bottom: 20px;">
-                        """, unsafe_allow_html=True
-                    )
-    
-                    col1, col2 = st.columns([1, 3])
-                    with col1:
-                        try:
-                            if recipe['image'] and os.path.exists(recipe['image']):
-                                img = Image.open(recipe['image'])
-                                st.image(img, use_column_width=True)
-                            else:
-                                img_data = requests.get(recipe['image']).content
-                                img = Image.open(BytesIO(img_data))
-                                st.image(img, use_column_width=True)
-                        except Exception:
-                            st.warning("Image could not be loaded.")
-    
-                    with col2:
-                        st.markdown(f"<h4 style='margin-bottom: 0;'>{recipe['title']}</h4>", unsafe_allow_html=True)
-                        st.markdown(f"<div style='color: gray;'>Calories: {recipe['calories']} kcal</div>", unsafe_allow_html=True)
-                        st.markdown(
-                            f"""
-                            <div style='margin: 8px 0;'>
-                            <strong>Macros:</strong> 
-                            {recipe['macros']['protein']}g protein, 
-                            {recipe['macros']['fat']}g fat, 
-                            {recipe['macros']['carbs']}g carbs
-                            </div>
-                            """, unsafe_allow_html=True
-                        )
-                        with st.expander("More Information"):
-                            st.markdown("**Ingredients:**")
-                            for ing, qty in recipe['ingredients'].items():
-                                st.markdown(f"- {ing}: {qty}")
-                            st.markdown("**Instructions:**")
-                            st.markdown(recipe['instructions'])
-    
-                    st.markdown("</div>", unsafe_allow_html=True)
 
 # -------------------- App Initialization --------------------
 
