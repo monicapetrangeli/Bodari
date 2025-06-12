@@ -4,7 +4,7 @@ import streamlit as st
 from streamlit import session_state as state
 from datetime import date, time, timedelta
 import openai
-from openai import OpenAI
+from openai import OpenAI, RateLimitError, OpenAIError
 import numpy as np
 from PIL import Image
 from io import BytesIO
@@ -676,8 +676,9 @@ def main_page():
                         st.session_state["show_add_meal_form"] = False
                         st.rerun()
 
-                    except Exception as e:
+                    except OpenAIError as e:
                         st.error(f"OpenAI estimation failed: {e}")
+                        return
                         
         st.markdown("<div style='margin-top: 32px;'></div>", unsafe_allow_html=True)
 
@@ -852,11 +853,11 @@ def main_page():
                 ''', (user_id, week_start, weekly_meal_plan))
                 conn.commit()
                 conn.close()
-            except openai.error.RateLimitError:
+            except  RateLimitError:
                 st.warning("Rate limit reached. Waiting for 20 seconds before retrying...")
                 time.sleep(20)
                 return
-            except Exception as e:
+            except OpenAIError as e:
                 st.error(f"Error in creating your weekly meal plan with OpenAI: {e}")
                 return
 
