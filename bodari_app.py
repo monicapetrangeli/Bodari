@@ -557,7 +557,16 @@ def main_page():
             st.session_state['page'] = 'onboarding'
             return
         
-        id, name, dob, gender, height, weight, activity_level, goal, timeline, dietary_restrictions = profile[0:10]
+        id = profile.get('id')
+        name = profile.get('name')
+        dob = profile.get('dob')
+        gender = profile.get('gender')
+        height = profile.get('height')
+        weight = profile.get('weight')
+        activity_level = profile.get('activity_level')
+        goal = profile.get('goal')
+        timeline = profile.get('timeline')
+        dietary_restrictions = profile.get('dietary_restrictions')
         dietary_restrictions_list = dietary_restrictions.split(',') if dietary_restrictions else []
 
         # Ensure dob is a date object
