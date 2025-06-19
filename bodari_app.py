@@ -403,13 +403,13 @@ def sign_in():
     password = st.text_input("Password", type="password", placeholder="Enter your password")
 
     if st.button("Let's start"):
-    conn = st.connection('bodari_users', type='sql')
-    with conn.session as session:
-        result = session.execute(
-            text('SELECT id, password FROM users WHERE email = :email'),
-            {'email': email}
-        )
-        user = result.fetchone()
+        conn = st.connection('bodari_users', type='sql')
+        with conn.session as session:
+            result = session.execute(
+                text('SELECT id, password FROM users WHERE email = :email'),
+                {'email': email}
+            )
+            user = result.fetchone()
 
         if user:
             user_id, hashed_password = user
