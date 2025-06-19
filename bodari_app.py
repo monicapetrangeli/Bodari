@@ -403,11 +403,13 @@ def sign_in():
     password = st.text_input("Password", type="password", placeholder="Enter your password")
 
     if st.button("Let's start"):
-        conn = st.connection('bodari_users', type='sql')
-        with conn.session as session:
-            session.execute(text('SELECT id, password FROM users WHERE email = ?', (email,)))
-            user = session.fetchone()
-            session.close()
+    conn = st.connection('bodari_users', type='sql')
+    with conn.session as session:
+        result = session.execute(
+            text('SELECT id, password FROM users WHERE email = :email'),
+            {'email': email}
+        )
+        user = result.fetchone()
 
         if user:
             user_id, hashed_password = user
@@ -461,13 +463,16 @@ def create_account():
         conn = st.connection('bodari_users', type='sql')
         with conn.session as session:
             try:
-                session.execute(text('INSERT INTO users (email, password) VALUES (?, ?)', (email, hashed_password)))
+                result = session.execute(
+                    text('INSERT INTO users (email, password) VALUES (:email, :password)'),
+                    {'email': email, 'password': hashed_password}
+                )
                 session.commit()
-                user_id = session.lastrowid
+                user_id = result.lastrowid  # This should work if backend supports it
                 st.session_state['user_id'] = user_id
                 st.session_state['page'] = 'onboarding'
                 st.success("Account created successfully! Redirecting to onboarding...")
-            except sqlite3.IntegrityError:
+            except IntegrityError:
                 st.error("An account with this email already exists. Please sign in.")
             finally:
                 session.close()
@@ -507,8 +512,11 @@ def onboarding():
     # Avoid duplicate onboarding
     conn = st.connection('bodari_users', type='sql')
     with conn.session as session:
-        session.execute(text('SELECT * FROM user_account WHERE user_id = ?', (user_id,)))
-        profile = session.fetchone()
+        result = session.execute(
+            text('SELECT * FROM user_account WHERE user_id = :user_id'),
+            {'user_id': user_id}
+        )
+        profile = result.fetchone()
         session.close()
 
     if profile:
@@ -535,12 +543,26 @@ def onboarding():
         dietary_restrictions_str = ','.join(dietary_restrictions)
         conn = st.connection('bodari_users', type='sql')
         with conn.session as session:
-            session.execute(text('''
-                INSERT INTO user_account (user_id, name, dob, gender, height, weight, activity_level, goal, timeline, dietary_restrictions)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ''', (user_id, name, dob, gender, height, weight, activity_level, goal, timeline, dietary_restrictions_str)))
+            session.execute(
+                text('''
+                    INSERT INTO user_account 
+                    (user_id, name, dob, gender, height, weight, activity_level, goal, timeline, dietary_restrictions)
+                    VALUES 
+                    (:user_id, :name, :dob, :gender, :height, :weight, :activity_level, :goal, :timeline, :dietary_restrictions)
+                '''), {
+                    'user_id': user_id,
+                    'name': name,
+                    'dob': dob,
+                    'gender': gender,
+                    'height': height,
+                    'weight': weight,
+                    'activity_level': activity_level,
+                    'goal': goal,
+                    'timeline': timeline,
+                    'dietary_restrictions': dietary_restrictions_str
+                }
+            )
             session.commit()
-            session.close()
 
         st.success("✅ Profile saved! Redirecting to the main page...")
         st.session_state['page'] = 'main'
@@ -581,8 +603,11 @@ def main_page():
         # Display user profile
         conn = st.connection('bodari_users', type='sql')
         with conn.session as session:
-            session.execute(text('SELECT * FROM user_account WHERE user_id = ?', (user_id,)))
-            profile = session.fetchone()
+            result = session.execute(
+                text('SELECT * FROM user_account WHERE user_id = :user_id'),
+                {'user_id': user_id}
+            )
+            profile = result.fetchone()
             session.close()
 
         if not profile:
@@ -672,13 +697,24 @@ def main_page():
                         # Save to DB
                         conn = st.connection('bodari_users', type='sql')
                         with conn.session as session:
-                            session.execute(text("""
-                                INSERT INTO user_meals (user_id, date, meal_name, ingredients, protein, fat, carbs, calories)
-                                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                            """, (
-                                user_id, meal_date, meal_name, json.dumps(ingredients),
-                                protein, fat, carbs, calories
-                            )))
+                            session.execute(
+                                text("""
+                                    INSERT INTO user_meals 
+                                    (user_id, date, meal_name, ingredients, protein, fat, carbs, calories)
+                                    VALUES 
+                                    (:user_id, :date, :meal_name, :ingredients, :protein, :fat, :carbs, :calories)
+                                """),
+                                {
+                                    'user_id': user_id,
+                                    'date': meal_date,
+                                    'meal_name': meal_name,
+                                    'ingredients': json.dumps(ingredients),
+                                    'protein': protein,
+                                    'fat': fat,
+                                    'carbs': carbs,
+                                    'calories': calories
+                                }
+                            )
                             session.commit()
                             session.close()
     
@@ -699,8 +735,15 @@ def main_page():
         # --- Calculate Consumed Calories and Macros ---
         conn = st.connection('bodari_users', type='sql')
         with conn.session as session:
-            session.execute(text("SELECT protein, fat, carbs, calories FROM user_meals WHERE user_id = ? AND date = ?", (user_id, date.today())))
-            today_meals = session.fetchall()
+            result = session.execute(
+                text("""
+                    SELECT protein, fat, carbs, calories 
+                    FROM user_meals 
+                    WHERE user_id = :user_id AND date = :meal_date
+                """),
+                {'user_id': user_id, 'meal_date': date.today()}
+            )
+            today_meals = result.fetchall()
             session.close()
 
         consumed = {'calories': 0, 'protein': 0, 'fat': 0, 'carbs': 0}
@@ -780,10 +823,20 @@ def main_page():
             with conn.session as session:
                 for entry in pantry_data:
                     try:
-                        session.execute(text('''
-                            INSERT OR REPLACE INTO grocery_ingredients (user_id, date, ingredient, quantity, unit)
-                            VALUES (?, ?, ?, ?, ?)
-                        ''', entry))
+                        session.execute(
+                            text('''
+                                INSERT OR REPLACE INTO grocery_ingredients 
+                                (user_id, date, ingredient, quantity, unit)
+                                VALUES (:user_id, :date, :ingredient, :quantity, :unit)
+                            '''),
+                            {
+                                'user_id': entry[0],
+                                'date': entry[1],
+                                'ingredient': entry[2],
+                                'quantity': entry[3],
+                                'unit': entry[4]
+                            }
+                        )
                     except Exception as e:
                         st.error(f"Error saving {entry[2]}: {e}")
                 session.commit()
