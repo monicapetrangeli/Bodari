@@ -14,6 +14,7 @@ from pathlib import Path
 import os
 from sqlalchemy import text
 from supabase import create_client, Client
+import bcrypt
 
 SUPABASE_URL = st.secrets["supabase"]["url"]
 SUPABASE_KEY = st.secrets["supabase"]["key"]
@@ -353,8 +354,10 @@ def sign_in():
         user = res.data[0] if res.data else None
 
         if user:
-            user_id, hashed_password = user
-            if hash_password(password) == hashed_password:
+            user_id = user['id']
+            hashed_password = user['password']
+            
+            if bcrypt.checkpw(password.encode('utf-8'), hashed_password.encode('utf-8')):
                 st.session_state['user_id'] = user_id
                 st.session_state['email'] = email
                 st.session_state['page'] = 'main'
