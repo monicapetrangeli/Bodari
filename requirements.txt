@@ -6,3 +6,4 @@ requests
 SQLAlchemy
 pymysql
 supabase
+bcrypt
