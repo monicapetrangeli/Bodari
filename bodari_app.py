@@ -411,7 +411,7 @@ def create_account():
                 'password': hashed_password
             }).execute()
             
-            if getattr(res, "status_code", None) == 200 and res.data:
+            if res.data:
                 user_id = res.data[0]['id'] 
                 st.session_state['user_id'] = user_id
                 st.session_state['page'] = 'onboarding'
