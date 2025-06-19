@@ -100,93 +100,33 @@ def create_database():
 
 # -------------------- Recipes Functions --------------------
 def insert_recipe(recipe):
-    conn = st.connection('bodari_users', type='sql')
-    with conn.session as session:
-        session.execute(
-            text('''
-                INSERT INTO recipes (title, image_url, diet, ingredients, calories, macros, instructions)
-                VALUES (:title, :image_url, :diet, :ingredients, :calories, :macros, :instructions)
-            '''), 
-            {
-                'title': recipe['title'],
-                'image_url': recipe['image'],
-                'diet': json.dumps(recipe['diet']),
-                'ingredients': json.dumps(recipe['ingredients']),
-                'calories': recipe['calories'],
-                'macros': json.dumps(recipe['macros']),
-                'instructions': recipe['instructions']
-            }
-        )
-        session.commit()
+    data = {
+        "title": recipe['title'],
+        "image_url": recipe['image'],
+        "diet": json.dumps(recipe['diet']),
+        "ingredients": json.dumps(recipe['ingredients']),
+        "calories": recipe['calories'],
+        "macros": json.dumps(recipe['macros']),
+        "instructions": recipe['instructions']
+    }
+    res = supabase.table("recipes").insert(data).execute()
+    if res.status_code != 201:
+        raise Exception(f"Failed to insert recipe: {res.data}")
 
 def get_all_recipes():
-    conn = st.connection('bodari_users', type='sql')
-    with conn.session as session:
-        result = session.execute(text("SELECT title, image_url, diet, ingredients, calories, macros, instructions FROM recipes"))
-        rows = result.fetchall()
-        session.close()
-
+    res = supabase.table("recipes").select("*").execute()
     recipes = []
-    for row in rows:
+    for row in res.data:
         recipes.append({
-            "title": row[0],
-            "image": row[1],
-            "diet": json.loads(row[2]),
-            "ingredients": json.loads(row[3]),
-            "calories": row[4],
-            "macros": json.loads(row[5]),
-            "instructions": row[6],
+            "title": row["title"],
+            "image": row["image_url"],
+            "diet": json.loads(row["diet"]) if row.get("diet") else [],
+            "ingredients": json.loads(row["ingredients"]) if row.get("ingredients") else {},
+            "calories": row["calories"],
+            "macros": json.loads(row["macros"]) if row.get("macros") else {},
+            "instructions": row["instructions"]
         })
     return recipes
-
-def populate_mock_recipes():
-    recipes = [
-        {
-            "title": "Grilled Chicken Salad",
-            "image": "https://www.eatingbirdfood.com/wp-content/uploads/2023/06/grilled-chicken-salad-hero.jpg",
-            "diet": ["Gluten-free"],
-            "ingredients": {
-                "Chicken Breast": "150g",
-                "Spinach": "50g",
-                "Tomato": "1 sliced",
-                "Olive Oil": "1 tbsp"
-            },
-            "calories": 350,
-            "macros": {"protein": 30, "fat": 18, "carbs": 12},
-            "instructions": "Grill chicken until cooked through. Toss with spinach, tomato, and olive oil."
-        },
-        {
-            "title": "Vegan Lentil Curry",
-            "image": "https://minimalistbaker.com/wp-content/uploads/2020/12/30-Minute-Lentil-Curry-SQUARE.jpg",
-            "diet": ["Vegan", "Gluten-free"],
-            "ingredients": {
-                "Lentils": "100g",
-                "Tomato": "1 chopped",
-                "Onion": "1 diced",
-                "Coconut Milk": "100ml"
-            },
-            "calories": 420,
-            "macros": {"protein": 20, "fat": 15, "carbs": 50},
-            "instructions": "Cook onions, add tomatoes and lentils. Simmer with coconut milk until tender."
-        },
-        {
-            "title": "Vegetarian Oats Bowl",
-            "image": "https://www.simplyquinoa.com/wp-content/uploads/2020/03/banana-nut-oatmeal-bowl.jpg",
-            "diet": ["Vegetarian"],
-            "ingredients": {
-                "Oats": "50g",
-                "Banana": "1 sliced",
-                "Milk": "100ml",
-                "Almonds": "10g"
-            },
-            "calories": 310,
-            "macros": {"protein": 10, "fat": 8, "carbs": 45},
-            "instructions": "Cook oats with milk. Top with banana slices and almonds."
-        }
-    ]
-
-    for r in recipes:
-        insert_recipe(r)
         
 # -------------------- Open AI --------------------
 openai.api_key = st.secrets["openai"]["api_key"]
@@ -409,13 +349,8 @@ def sign_in():
     password = st.text_input("Password", type="password", placeholder="Enter your password")
 
     if st.button("Let's start"):
-        conn = st.connection('bodari_users', type='sql')
-        with conn.session as session:
-            result = session.execute(
-                text('SELECT id, password FROM users WHERE email = :email'),
-                {'email': email}
-            )
-            user = result.fetchone()
+        res = supabase.table("users").select("id, password").eq("email", email).execute()
+        user = res.data[0] if res.data else None
 
         if user:
             user_id, hashed_password = user
@@ -466,22 +401,25 @@ def create_account():
 
         hashed_password = hash_password(password)
 
-        conn = st.connection('bodari_users', type='sql')
-        with conn.session as session:
-            try:
-                result = session.execute(
-                    text('INSERT INTO users (email, password) VALUES (:email, :password)'),
-                    {'email': email, 'password': hashed_password}
-                )
-                session.commit()
-                user_id = result.lastrowid  # This should work if backend supports it
+        try:
+            res = supabase.table('users').insert({
+                'email': email,
+                'password': hashed_password
+            }).execute()
+            
+            if res.status_code == 201:
+                user_id = res.data[0]['id']  # Assuming 'id' is auto-generated
                 st.session_state['user_id'] = user_id
                 st.session_state['page'] = 'onboarding'
                 st.success("Account created successfully! Redirecting to onboarding...")
-            except IntegrityError:
+            else:
+                st.error("Failed to create account. Please try again.")
+        except Exception as e:
+            if 'duplicate key' in str(e).lower():
                 st.error("An account with this email already exists. Please sign in.")
-            finally:
-                session.close()
+            else:
+                st.error(f"An error occurred: {e}")
+
 
 # -------------------- Onboarding page --------------------
 
@@ -516,14 +454,8 @@ def onboarding():
         return
 
     # Avoid duplicate onboarding
-    conn = st.connection('bodari_users', type='sql')
-    with conn.session as session:
-        result = session.execute(
-            text('SELECT * FROM user_account WHERE user_id = :user_id'),
-            {'user_id': user_id}
-        )
-        profile = result.fetchone()
-        session.close()
+    res = supabase.table('user_account').select('*').eq('user_id', user_id).execute()
+    profile = res.data[0] if res.data else None
 
     if profile:
         st.info("Profile already exists. Redirecting to the main page...")
@@ -547,28 +479,25 @@ def onboarding():
     # Save profile
     if st.button("Save Profile"):
         dietary_restrictions_str = ','.join(dietary_restrictions)
-        conn = st.connection('bodari_users', type='sql')
-        with conn.session as session:
-            session.execute(
-                text('''
-                    INSERT INTO user_account 
-                    (user_id, name, dob, gender, height, weight, activity_level, goal, timeline, dietary_restrictions)
-                    VALUES 
-                    (:user_id, :name, :dob, :gender, :height, :weight, :activity_level, :goal, :timeline, :dietary_restrictions)
-                '''), {
-                    'user_id': user_id,
-                    'name': name,
-                    'dob': dob,
-                    'gender': gender,
-                    'height': height,
-                    'weight': weight,
-                    'activity_level': activity_level,
-                    'goal': goal,
-                    'timeline': timeline,
-                    'dietary_restrictions': dietary_restrictions_str
-                }
-            )
-            session.commit()
+        data = {
+            'user_id': user_id,
+            'name': name,
+            'dob': dob,
+            'gender': gender,
+            'height': height,
+            'weight': weight,
+            'activity_level': activity_level,
+            'goal': goal,
+            'timeline': timeline,
+            'dietary_restrictions': dietary_restrictions_str
+        }
+        
+        res = supabase.table('user_account').insert(data).execute()
+        
+        if res.status_code == 201:
+            st.success("User profile saved successfully.")
+        else:
+            st.error(f"Failed to save user profile: {res.error.message if res.error else 'Unknown error'}")
 
         st.success("✅ Profile saved! Redirecting to the main page...")
         st.session_state['page'] = 'main'
@@ -607,14 +536,13 @@ def main_page():
             return
 
         # Display user profile
-        conn = st.connection('bodari_users', type='sql')
-        with conn.session as session:
-            result = session.execute(
-                text('SELECT * FROM user_account WHERE user_id = :user_id'),
-                {'user_id': user_id}
-            )
-            profile = result.fetchone()
-            session.close()
+        res = supabase.table('user_account').select('*').eq('user_id', user_id).execute()
+        if res.status_code == 200 and res.data:
+            profile = res.data[0]  # Assuming user_id is unique, so one record
+        else:
+            profile = None
+            st.warning("Profile not found or error fetching profile.")
+
 
         if not profile:
             st.warning("Profile not found. Please complete onboarding.")
@@ -701,28 +629,23 @@ def main_page():
                         calories = extract_macro("calories", reply)
                                      
                         # Save to DB
-                        conn = st.connection('bodari_users', type='sql')
-                        with conn.session as session:
-                            session.execute(
-                                text("""
-                                    INSERT INTO user_meals 
-                                    (user_id, date, meal_name, ingredients, protein, fat, carbs, calories)
-                                    VALUES 
-                                    (:user_id, :date, :meal_name, :ingredients, :protein, :fat, :carbs, :calories)
-                                """),
-                                {
-                                    'user_id': user_id,
-                                    'date': meal_date,
-                                    'meal_name': meal_name,
-                                    'ingredients': json.dumps(ingredients),
-                                    'protein': protein,
-                                    'fat': fat,
-                                    'carbs': carbs,
-                                    'calories': calories
-                                }
-                            )
-                            session.commit()
-                            session.close()
+                        data = {
+                            'user_id': user_id,
+                            'date': meal_date.isoformat() if hasattr(meal_date, 'isoformat') else meal_date,
+                            'meal_name': meal_name,
+                            'ingredients': json.dumps(ingredients),
+                            'protein': protein,
+                            'fat': fat,
+                            'carbs': carbs,
+                            'calories': calories
+                        }
+                        
+                        res = supabase.table('user_meals').insert(data).execute()
+                        
+                        if res.status_code == 201:
+                            st.success("Meal saved successfully!")
+                        else:
+                            st.error(f"Failed to save meal: {res.error.message if res.error else 'Unknown error'}")
     
                             st.success(f"Meal '{meal_name}' saved with estimated macros!")
                             st.session_state["show_add_meal_form"] = False
@@ -739,18 +662,17 @@ def main_page():
         macros = macros_formula(daily_calories, goal)
 
         # --- Calculate Consumed Calories and Macros ---
-        conn = st.connection('bodari_users', type='sql')
-        with conn.session as session:
-            result = session.execute(
-                text("""
-                    SELECT protein, fat, carbs, calories 
-                    FROM user_meals 
-                    WHERE user_id = :user_id AND date = :meal_date
-                """),
-                {'user_id': user_id, 'meal_date': date.today()}
-            )
-            today_meals = result.fetchall()
-            session.close()
+        res = supabase.table('user_meals') \
+            .select('protein, fat, carbs, calories') \
+            .eq('user_id', user_id) \
+            .eq('date', date.today().isoformat()) \
+            .execute()
+        
+        if res.status_code == 200:
+            today_meals = res.data
+        else:
+            st.error(f"Failed to fetch meals: {res.error.message if res.error else 'Unknown error'}")
+            today_meals = []
 
         consumed = {'calories': 0, 'protein': 0, 'fat': 0, 'carbs': 0}
         for meal in today_meals:
@@ -825,28 +747,18 @@ def main_page():
                 pantry_data.append((user_id, date.today(), ingredient, quantity if quantity > 0 else None, unit if quantity > 0 else "units"))
 
         if st.button("Save Pantry"):
-            conn = st.connection('bodari_users', type='sql')
-            with conn.session as session:
-                for entry in pantry_data:
-                    try:
-                        session.execute(
-                            text('''
-                                INSERT OR REPLACE INTO grocery_ingredients 
-                                (user_id, date, ingredient, quantity, unit)
-                                VALUES (:user_id, :date, :ingredient, :quantity, :unit)
-                            '''),
-                            {
-                                'user_id': entry[0],
-                                'date': entry[1],
-                                'ingredient': entry[2],
-                                'quantity': entry[3],
-                                'unit': entry[4]
-                            }
-                        )
-                    except Exception as e:
-                        st.error(f"Error saving {entry[2]}: {e}")
-                session.commit()
-                session.close()
+            for entry in pantry_data:
+                data = {
+                    'user_id': entry[0],
+                    'date': entry[1].isoformat() if hasattr(entry[1], 'isoformat') else entry[1],
+                    'ingredient': entry[2],
+                    'quantity': entry[3],
+                    'unit': entry[4]
+                }
+                res = supabase.table('grocery_ingredients').upsert(data).execute()
+                if res.status_code != 201:
+                    st.error(f"Error saving {entry[2]}: {res.error.message if res.error else 'Unknown error'}")
+
                 st.success("Pantry ingredients saved successfully!")
                 st.markdown("<br>", unsafe_allow_html=True)
         
@@ -858,17 +770,17 @@ def main_page():
         week_start = get_current_week_start()
 
         # Check pantry ingredients for today
-        conn = st.connection('bodari_users', type='sql')
-        with conn.session as session:
-            result = session.execute(
-                text('''
-                    SELECT ingredient, quantity, unit FROM grocery_ingredients
-                    WHERE user_id = :user_id AND date = :query_date
-                '''),
-                {'user_id': user_id, 'query_date': date.today()}
-            )
-            pantry_rows = result.fetchall()
-            session.close()
+        res = supabase.table('grocery_ingredients') \
+            .select('ingredient, quantity, unit') \
+            .eq('user_id', user_id) \
+            .eq('date', date.today().isoformat()) \
+            .execute()
+        
+        if res.status_code == 200:
+            pantry_rows = res.data
+        else:
+            st.error(f"Failed to fetch pantry data: {res.error.message if res.error else 'Unknown error'}")
+            pantry_rows = []
 
         pantry_ingredients_str = ""
         if pantry_rows:
@@ -877,17 +789,18 @@ def main_page():
             )
 
         # If there's a cached meal plan and pantry is unchanged, load it
-        conn = st.connection('bodari_users', type='sql')
-        with conn.session as session:
-            result = session.execute(
-                text('''
-                    SELECT meal_plan FROM weekly_meal_plan
-                    WHERE user_id = :user_id AND week_start = :week_start
-                '''),
-                {'user_id': user_id, 'week_start': week_start}
-            )
-            row = result.fetchone()
-            session.close()
+        res = supabase.table('weekly_meal_plan') \
+            .select('meal_plan') \
+            .eq('user_id', user_id) \
+            .eq('week_start', week_start.isoformat()) \
+            .limit(1) \
+            .execute()
+        
+        if res.status_code == 200 and res.data:
+            meal_plan = res.data[0]['meal_plan']
+        else:
+            meal_plan = None
+            st.error("No meal plan found or failed to fetch.")
 
         # If meal plan already exists and pantry wasn't updated (assumes user hit Save Pantry first), load existing
         if row and not pantry_ingredients_str:
@@ -920,21 +833,15 @@ def main_page():
                 weekly_meal_plan = response.choices[0].message.content.strip()
 
                 # Save or update the meal plan
-                conn = st.connection('bodari_users', type='sql')
-                with conn.session as session:
-                    session.execute(
-                        text('''
-                            INSERT OR REPLACE INTO weekly_meal_plan (user_id, week_start, meal_plan)
-                            VALUES (:user_id, :week_start, :meal_plan)
-                        '''),
-                        {
-                            'user_id': user_id,
-                            'week_start': week_start,
-                            'meal_plan': weekly_meal_plan
-                        }
-                    )
-                    session.commit()
-                    session.close()
+                res = supabase.table('weekly_meal_plan').upsert({
+                    'user_id': user_id,
+                    'week_start': week_start.isoformat(),
+                    'meal_plan': weekly_meal_plan
+                }).execute()
+                
+                if res.status_code != 200:
+                    st.error(f"Failed to save weekly meal plan: {res.error.message if res.error else 'Unknown error'}")
+
             except  RateLimitError:
                 st.warning("Rate limit reached. Waiting for 20 seconds before retrying...")
                 time.sleep(20)
@@ -948,19 +855,17 @@ def main_page():
         st.markdown("<div style='margin-top: 32px;'></div>", unsafe_allow_html=True)
         st.markdown("### Logged Meals")
 
-        conn = st.connection('bodari_users', type='sql')
-        with conn.session as session:
-            result = session.execute(
-                text('''
-                    SELECT date, meal_name, protein, fat, carbs, calories
-                    FROM user_meals
-                    WHERE user_id = :user_id
-                    ORDER BY date DESC
-                '''),
-                {'user_id': user_id}
-            )
-            meals = result.fetchall()
-            session.close()
+        res = supabase.table('user_meals') \
+            .select('date, meal_name, protein, fat, carbs, calories') \
+            .eq('user_id', user_id) \
+            .order('date', desc=True) \
+            .execute()
+        
+        if res.status_code == 200:
+            meals = res.data
+        else:
+            st.error(f"Failed to fetch meals: {res.error.message if res.error else 'Unknown error'}")
+            meals = []
 
         if not meals:
             st.info("You haven’t added any meals yet.")
