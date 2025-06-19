@@ -96,26 +96,28 @@ def create_database():
 def insert_recipe(recipe):
     conn = st.connection('bodari_users', type='sql')
     with conn.session as session:
-        session.execute(text('''
-        INSERT INTO recipes (title, image_url, diet, ingredients, calories, macros, instructions)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-    ''', (
-        recipe['title'],
-        recipe['image'],
-        json.dumps(recipe['diet']),
-        json.dumps(recipe['ingredients']),
-        recipe['calories'],
-        json.dumps(recipe['macros']),
-        recipe['instructions']
-    )))
-
-    session.commit()
+        session.execute(
+            text('''
+                INSERT INTO recipes (title, image_url, diet, ingredients, calories, macros, instructions)
+                VALUES (:title, :image_url, :diet, :ingredients, :calories, :macros, :instructions)
+            '''), 
+            {
+                'title': recipe['title'],
+                'image_url': recipe['image'],
+                'diet': json.dumps(recipe['diet']),
+                'ingredients': json.dumps(recipe['ingredients']),
+                'calories': recipe['calories'],
+                'macros': json.dumps(recipe['macros']),
+                'instructions': recipe['instructions']
+            }
+        )
+        session.commit()
 
 def get_all_recipes():
     conn = st.connection('bodari_users', type='sql')
     with conn.session as session:
-        session.execute(text("SELECT title, image_url, diet, ingredients, calories, macros, instructions FROM recipes"))
-        rows = session.fetchall()
+        result = session.execute(text("SELECT title, image_url, diet, ingredients, calories, macros, instructions FROM recipes"))
+        rows = result.fetchall()
         session.close()
 
     recipes = []
