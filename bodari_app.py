@@ -14,100 +14,88 @@ from pathlib import Path
 import os
 
 def create_database():
-    conn = st.connection('bodari_users.db', type='sql')
-    c = conn.cursor()
-    
-    # Create table to store users credentials
-    c.execute('''
-              CREATE TABLE IF NOT EXISTS users(
-              id INTEGER PRIMARY KEY, 
-              email TEXT UNIQUE, 
-              password TEXT)
-              ''')
-    
-    # Create table to store users account information
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS user_account (
-            user_id INTEGER PRIMARY KEY,
-            name TEXT NOT NULL,
-            dob DATE,
-            gender TEXT,
-            height REAL NOT NULL,
-            weight REAL NOT NULL,
-            activity_level TEXT NOT NULL,
-            goal TEXT NOT NULL,
-            timeline INTEGER NOT NULL,
-            dietary_restrictions TEXT,
-            FOREIGN KEY (user_id) REFERENCES users (id)
-        )
-    ''')
+    conn = st.connection('bodari_users', type='sql')
+    with conn.session as session:
+        session.execute('''
+            CREATE TABLE IF NOT EXISTS users(
+                id INTEGER PRIMARY KEY, 
+                email TEXT UNIQUE, 
+                password TEXT)
+        ''')
 
-    # Create a table to store weekly grocery ingredients
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS grocery_ingredients (
-              user_id INTEGER NOT NULL,
-              date DATE NOT NULL,
-              ingredient TEXT NOT NULL,
-              quantity REAL NOT NULL,  -- Quantity in grams
-              unit TEXT NOT NULL,  -- e.g., grams, kg, cups
-              PRIMARY KEY (user_id, date),
-              FOREIGN KEY (user_id) REFERENCES users (id)
-        )
-    ''')
+        session.execute('''
+            CREATE TABLE IF NOT EXISTS user_account (
+                user_id INTEGER PRIMARY KEY,
+                name TEXT NOT NULL,
+                dob DATE,
+                gender TEXT,
+                height REAL NOT NULL,
+                weight REAL NOT NULL,
+                activity_level TEXT NOT NULL,
+                goal TEXT NOT NULL,
+                timeline INTEGER NOT NULL,
+                dietary_restrictions TEXT,
+                FOREIGN KEY (user_id) REFERENCES users (id)
+            )
+        ''')
 
-    # Create a tavle to store the weekly meal plan created
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS weekly_meal_plan (
-            user_id INTEGER NOT NULL,
-            week_start DATE NOT NULL,
-            meal_plan TEXT NOT NULL,
-            PRIMARY KEY (user_id, week_start),
-            FOREIGN KEY (user_id) REFERENCES users (id)
-        )
-    ''')
-    
-    # Create a table to store recipes information
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS recipes (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            title TEXT NOT NULL,
-            image_url TEXT,
-            diet TEXT,               -- JSON string list
-            ingredients TEXT,        -- JSON dict string
-            calories INTEGER,
-            macros TEXT,             -- JSON dict string
-            instructions TEXT
-        )
-    ''')
+        session.execute('''
+            CREATE TABLE IF NOT EXISTS grocery_ingredients (
+                user_id INTEGER NOT NULL,
+                date DATE NOT NULL,
+                ingredient TEXT NOT NULL,
+                quantity REAL NOT NULL,
+                unit TEXT NOT NULL,
+                PRIMARY KEY (user_id, date),
+                FOREIGN KEY (user_id) REFERENCES users (id)
+            )
+        ''')
 
-    # Create a table to log the user meals
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS user_meals (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER,
-            date DATE,
-            meal_name TEXT,
-            ingredients TEXT,         -- JSON string of {ingredient: quantity}
-            protein REAL,
-            fat REAL,
-            carbs REAL,
-            calories REAL,
-            FOREIGN KEY (user_id) REFERENCES users(id)
-        )
-    ''')
+        session.execute('''
+            CREATE TABLE IF NOT EXISTS weekly_meal_plan (
+                user_id INTEGER NOT NULL,
+                week_start DATE NOT NULL,
+                meal_plan TEXT NOT NULL,
+                PRIMARY KEY (user_id, week_start),
+                FOREIGN KEY (user_id) REFERENCES users (id)
+            )
+        ''')
 
-    # Save (commit) the changes
-    conn.commit()
-    
-    # Close the connection
-    conn.close()
+        session.execute('''
+            CREATE TABLE IF NOT EXISTS recipes (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                title TEXT NOT NULL,
+                image_url TEXT,
+                diet TEXT,
+                ingredients TEXT,
+                calories INTEGER,
+                macros TEXT,
+                instructions TEXT
+            )
+        ''')
+
+        session.execute('''
+            CREATE TABLE IF NOT EXISTS user_meals (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER,
+                date DATE,
+                meal_name TEXT,
+                ingredients TEXT,
+                protein REAL,
+                fat REAL,
+                carbs REAL,
+                calories REAL,
+                FOREIGN KEY (user_id) REFERENCES users(id)
+            )
+        ''')
+
+        session.commit()
 
 # -------------------- Recipes Functions --------------------
 def insert_recipe(recipe):
-    conn = st.connection('bodari_users.db', type='sql')
-    c = conn.cursor()
-
-    c.execute('''
+    conn = st.connection('bodari_users', type='sql')
+    with conn.session as session:
+        session.execute('''
         INSERT INTO recipes (title, image_url, diet, ingredients, calories, macros, instructions)
         VALUES (?, ?, ?, ?, ?, ?, ?)
     ''', (
@@ -120,15 +108,14 @@ def insert_recipe(recipe):
         recipe['instructions']
     ))
 
-    conn.commit()
-    conn.close()
+    session.commit()
 
 def get_all_recipes():
     conn = st.connection('bodari_users.db', type='sql')
-    c = conn.cursor()
-    c.execute("SELECT title, image_url, diet, ingredients, calories, macros, instructions FROM recipes")
-    rows = c.fetchall()
-    conn.close()
+    with conn.session as session:
+        session.execute("SELECT title, image_url, diet, ingredients, calories, macros, instructions FROM recipes")
+        rows = session.fetchall()
+        session.close()
 
     recipes = []
     for row in rows:
@@ -414,10 +401,10 @@ def sign_in():
 
     if st.button("Let's start"):
         conn = st.connection('bodari_users.db', type='sql')
-        c = conn.cursor()
-        c.execute('SELECT id, password FROM users WHERE email = ?', (email,))
-        user = c.fetchone()
-        conn.close()
+        with conn.session as session:
+            session.execute('SELECT id, password FROM users WHERE email = ?', (email,))
+            user = session.fetchone()
+            session.close()
 
         if user:
             user_id, hashed_password = user
@@ -469,18 +456,18 @@ def create_account():
         hashed_password = hash_password(password)
 
         conn = st.connection('bodari_users.db', type='sql')
-        c = conn.cursor()
-        try:
-            c.execute('INSERT INTO users (email, password) VALUES (?, ?)', (email, hashed_password))
-            conn.commit()
-            user_id = c.lastrowid
-            st.session_state['user_id'] = user_id
-            st.session_state['page'] = 'onboarding'
-            st.success("Account created successfully! Redirecting to onboarding...")
-        except sqlite3.IntegrityError:
-            st.error("An account with this email already exists. Please sign in.")
-        finally:
-            conn.close()
+        with conn.session as session:
+            try:
+                session.execute('INSERT INTO users (email, password) VALUES (?, ?)', (email, hashed_password))
+                session.commit()
+                user_id = session.lastrowid
+                st.session_state['user_id'] = user_id
+                st.session_state['page'] = 'onboarding'
+                st.success("Account created successfully! Redirecting to onboarding...")
+            except sqlite3.IntegrityError:
+                st.error("An account with this email already exists. Please sign in.")
+            finally:
+                session.close()
 
 # -------------------- Onboarding page --------------------
 
@@ -516,10 +503,10 @@ def onboarding():
 
     # Avoid duplicate onboarding
     conn = st.connection('bodari_users.db', type='sql')
-    c = conn.cursor()
-    c.execute('SELECT * FROM user_account WHERE user_id = ?', (user_id,))
-    profile = c.fetchone()
-    conn.close()
+    with conn.session as session:
+        session.execute('SELECT * FROM user_account WHERE user_id = ?', (user_id,))
+        profile = session.fetchone()
+        session.close()
 
     if profile:
         st.info("Profile already exists. Redirecting to the main page...")
@@ -544,13 +531,13 @@ def onboarding():
     if st.button("Save Profile"):
         dietary_restrictions_str = ','.join(dietary_restrictions)
         conn = st.connection('bodari_users.db', type='sql')
-        c = conn.cursor()
-        c.execute('''
-            INSERT INTO user_account (user_id, name, dob, gender, height, weight, activity_level, goal, timeline, dietary_restrictions)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ''', (user_id, name, dob, gender, height, weight, activity_level, goal, timeline, dietary_restrictions_str))
-        conn.commit()
-        conn.close()
+        with conn.session as session:
+            session.execute('''
+                INSERT INTO user_account (user_id, name, dob, gender, height, weight, activity_level, goal, timeline, dietary_restrictions)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (user_id, name, dob, gender, height, weight, activity_level, goal, timeline, dietary_restrictions_str))
+            session.commit()
+            session.close()
 
         st.success("✅ Profile saved! Redirecting to the main page...")
         st.session_state['page'] = 'main'
@@ -590,10 +577,10 @@ def main_page():
 
         # Display user profile
         conn = st.connection('bodari_users.db', type='sql')
-        c = conn.cursor()
-        c.execute('SELECT * FROM user_account WHERE user_id = ?', (user_id,))
-        profile = c.fetchone()
-        conn.close()
+        with conn.session as session:
+            session.execute('SELECT * FROM user_account WHERE user_id = ?', (user_id,))
+            profile = session.fetchone()
+            session.close()
 
         if not profile:
             st.warning("Profile not found. Please complete onboarding.")
@@ -681,20 +668,20 @@ def main_page():
                                      
                         # Save to DB
                         conn = st.connection('bodari_users.db', type='sql')
-                        c = conn.cursor()
-                        c.execute("""
-                            INSERT INTO user_meals (user_id, date, meal_name, ingredients, protein, fat, carbs, calories)
-                            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                        """, (
-                            user_id, meal_date, meal_name, json.dumps(ingredients),
-                            protein, fat, carbs, calories
-                        ))
-                        conn.commit()
-                        conn.close()
-
-                        st.success(f"Meal '{meal_name}' saved with estimated macros!")
-                        st.session_state["show_add_meal_form"] = False
-                        st.rerun()
+                        with conn.session as session:
+                            session.execute("""
+                                INSERT INTO user_meals (user_id, date, meal_name, ingredients, protein, fat, carbs, calories)
+                                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                            """, (
+                                user_id, meal_date, meal_name, json.dumps(ingredients),
+                                protein, fat, carbs, calories
+                            ))
+                            session.commit()
+                            session.close()
+    
+                            st.success(f"Meal '{meal_name}' saved with estimated macros!")
+                            st.session_state["show_add_meal_form"] = False
+                            st.rerun()
 
                     except OpenAIError as e:
                         st.error(f"OpenAI estimation failed: {e}")
@@ -708,10 +695,10 @@ def main_page():
 
         # --- Calculate Consumed Calories and Macros ---
         conn = st.connection('bodari_users.db', type='sql')
-        c = conn.cursor()
-        c.execute("SELECT protein, fat, carbs, calories FROM user_meals WHERE user_id = ? AND date = ?", (user_id, date.today()))
-        today_meals = c.fetchall()
-        conn.close()
+        with conn.session as session:
+            session.execute("SELECT protein, fat, carbs, calories FROM user_meals WHERE user_id = ? AND date = ?", (user_id, date.today()))
+            today_meals = session.fetchall()
+            session.close()
 
         consumed = {'calories': 0, 'protein': 0, 'fat': 0, 'carbs': 0}
         for meal in today_meals:
@@ -787,19 +774,19 @@ def main_page():
 
         if st.button("Save Pantry"):
             conn = st.connection('bodari_users.db', type='sql')
-            c = conn.cursor()
-            for entry in pantry_data:
-                try:
-                    c.execute('''
-                        INSERT OR REPLACE INTO grocery_ingredients (user_id, date, ingredient, quantity, unit)
-                        VALUES (?, ?, ?, ?, ?)
-                    ''', entry)
-                except Exception as e:
-                    st.error(f"Error saving {entry[2]}: {e}")
-            conn.commit()
-            conn.close()
-            st.success("Pantry ingredients saved successfully!")
-            st.markdown("<br>", unsafe_allow_html=True)
+            with conn.session as session:
+                for entry in pantry_data:
+                    try:
+                        session.execute('''
+                            INSERT OR REPLACE INTO grocery_ingredients (user_id, date, ingredient, quantity, unit)
+                            VALUES (?, ?, ?, ?, ?)
+                        ''', entry)
+                    except Exception as e:
+                        st.error(f"Error saving {entry[2]}: {e}")
+                session.commit()
+                session.close()
+                st.success("Pantry ingredients saved successfully!")
+                st.markdown("<br>", unsafe_allow_html=True)
         
         # -------------------- Weekly Meal Plan Section --------------------
         st.markdown("<div style='margin-top: 32px;'></div>", unsafe_allow_html=True)
@@ -810,13 +797,13 @@ def main_page():
 
         # Check pantry ingredients for today
         conn = st.connection('bodari_users.db', type='sql')
-        c = conn.cursor()
-        c.execute('''
-            SELECT ingredient, quantity, unit FROM grocery_ingredients
-            WHERE user_id = ? AND date = ?
-        ''', (user_id, date.today()))
-        pantry_rows = c.fetchall()
-        conn.close()
+        with conn.session as session:
+            session.execute('''
+                SELECT ingredient, quantity, unit FROM grocery_ingredients
+                WHERE user_id = ? AND date = ?
+            ''', (user_id, date.today()))
+            pantry_rows = session.fetchall()
+            session.close()
 
         pantry_ingredients_str = ""
         if pantry_rows:
@@ -826,13 +813,13 @@ def main_page():
 
         # If there's a cached meal plan and pantry is unchanged, load it
         conn = st.connection('bodari_users.db', type='sql')
-        c = conn.cursor()
-        c.execute('''
-            SELECT meal_plan FROM weekly_meal_plan
-            WHERE user_id = ? AND week_start = ?
-        ''', (user_id, week_start))
-        row = c.fetchone()
-        conn.close()
+        with conn.session as session:
+            session.execute('''
+                SELECT meal_plan FROM weekly_meal_plan
+                WHERE user_id = ? AND week_start = ?
+            ''', (user_id, week_start))
+            row = session.fetchone()
+            session.close()
 
         # If meal plan already exists and pantry wasn't updated (assumes user hit Save Pantry first), load existing
         if row and not pantry_ingredients_str:
@@ -866,13 +853,13 @@ def main_page():
 
                 # Save or update the meal plan
                 conn = st.connection('bodari_users.db', type='sql')
-                c = conn.cursor()
-                c.execute('''
-                    INSERT OR REPLACE INTO weekly_meal_plan (user_id, week_start, meal_plan)
-                    VALUES (?, ?, ?)
-                ''', (user_id, week_start, weekly_meal_plan))
-                conn.commit()
-                conn.close()
+                with conn.session as session:
+                    session.execute('''
+                        INSERT OR REPLACE INTO weekly_meal_plan (user_id, week_start, meal_plan)
+                        VALUES (?, ?, ?)
+                    ''', (user_id, week_start, weekly_meal_plan))
+                    session.commit()
+                    session.close()
             except  RateLimitError:
                 st.warning("Rate limit reached. Waiting for 20 seconds before retrying...")
                 time.sleep(20)
@@ -887,10 +874,10 @@ def main_page():
         st.markdown("### Logged Meals")
 
         conn = st.connection('bodari_users.db', type='sql')
-        c = conn.cursor()
-        c.execute("SELECT date, meal_name, protein, fat, carbs, calories FROM user_meals WHERE user_id = ? ORDER BY date DESC", (user_id,))
-        meals = c.fetchall()
-        conn.close()
+        with conn.session as session:
+            session.execute("SELECT date, meal_name, protein, fat, carbs, calories FROM user_meals WHERE user_id = ? ORDER BY date DESC", (user_id,))
+            meals = session.fetchall()
+            session.close()
 
         if not meals:
             st.info("You haven’t added any meals yet.")
