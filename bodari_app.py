@@ -15,7 +15,7 @@ import os
 from sqlalchemy import text
 
 def create_database():
-    conn = st.connection('bodari_users.db', type='sql')
+    conn = st.connection('bodari_users', type='sql')
     with conn.session as session:
         session.execute(text('''
             CREATE TABLE IF NOT EXISTS users(
@@ -94,7 +94,7 @@ def create_database():
 
 # -------------------- Recipes Functions --------------------
 def insert_recipe(recipe):
-    conn = st.connection('bodari_users.db', type='sql')
+    conn = st.connection('bodari_users', type='sql')
     with conn.session as session:
         session.execute('''
         INSERT INTO recipes (title, image_url, diet, ingredients, calories, macros, instructions)
@@ -112,7 +112,7 @@ def insert_recipe(recipe):
     session.commit()
 
 def get_all_recipes():
-    conn = st.connection('bodari_users.db', type='sql')
+    conn = st.connection('bodari_users', type='sql')
     with conn.session as session:
         session.execute("SELECT title, image_url, diet, ingredients, calories, macros, instructions FROM recipes")
         rows = session.fetchall()
@@ -401,7 +401,7 @@ def sign_in():
     password = st.text_input("Password", type="password", placeholder="Enter your password")
 
     if st.button("Let's start"):
-        conn = st.connection('bodari_users.db', type='sql')
+        conn = st.connection('bodari_users', type='sql')
         with conn.session as session:
             session.execute('SELECT id, password FROM users WHERE email = ?', (email,))
             user = session.fetchone()
@@ -456,7 +456,7 @@ def create_account():
 
         hashed_password = hash_password(password)
 
-        conn = st.connection('bodari_users.db', type='sql')
+        conn = st.connection('bodari_users', type='sql')
         with conn.session as session:
             try:
                 session.execute('INSERT INTO users (email, password) VALUES (?, ?)', (email, hashed_password))
@@ -503,7 +503,7 @@ def onboarding():
         return
 
     # Avoid duplicate onboarding
-    conn = st.connection('bodari_users.db', type='sql')
+    conn = st.connection('bodari_users', type='sql')
     with conn.session as session:
         session.execute('SELECT * FROM user_account WHERE user_id = ?', (user_id,))
         profile = session.fetchone()
@@ -531,7 +531,7 @@ def onboarding():
     # Save profile
     if st.button("Save Profile"):
         dietary_restrictions_str = ','.join(dietary_restrictions)
-        conn = st.connection('bodari_users.db', type='sql')
+        conn = st.connection('bodari_users', type='sql')
         with conn.session as session:
             session.execute('''
                 INSERT INTO user_account (user_id, name, dob, gender, height, weight, activity_level, goal, timeline, dietary_restrictions)
@@ -577,7 +577,7 @@ def main_page():
             return
 
         # Display user profile
-        conn = st.connection('bodari_users.db', type='sql')
+        conn = st.connection('bodari_users', type='sql')
         with conn.session as session:
             session.execute('SELECT * FROM user_account WHERE user_id = ?', (user_id,))
             profile = session.fetchone()
@@ -668,7 +668,7 @@ def main_page():
                         calories = extract_macro("calories", reply)
                                      
                         # Save to DB
-                        conn = st.connection('bodari_users.db', type='sql')
+                        conn = st.connection('bodari_users', type='sql')
                         with conn.session as session:
                             session.execute("""
                                 INSERT INTO user_meals (user_id, date, meal_name, ingredients, protein, fat, carbs, calories)
@@ -695,7 +695,7 @@ def main_page():
         macros = macros_formula(daily_calories, goal)
 
         # --- Calculate Consumed Calories and Macros ---
-        conn = st.connection('bodari_users.db', type='sql')
+        conn = st.connection('bodari_users', type='sql')
         with conn.session as session:
             session.execute("SELECT protein, fat, carbs, calories FROM user_meals WHERE user_id = ? AND date = ?", (user_id, date.today()))
             today_meals = session.fetchall()
@@ -774,7 +774,7 @@ def main_page():
                 pantry_data.append((user_id, date.today(), ingredient, quantity if quantity > 0 else None, unit if quantity > 0 else "units"))
 
         if st.button("Save Pantry"):
-            conn = st.connection('bodari_users.db', type='sql')
+            conn = st.connection('bodari_users', type='sql')
             with conn.session as session:
                 for entry in pantry_data:
                     try:
@@ -797,7 +797,7 @@ def main_page():
         week_start = get_current_week_start()
 
         # Check pantry ingredients for today
-        conn = st.connection('bodari_users.db', type='sql')
+        conn = st.connection('bodari_users', type='sql')
         with conn.session as session:
             session.execute('''
                 SELECT ingredient, quantity, unit FROM grocery_ingredients
@@ -813,7 +813,7 @@ def main_page():
             )
 
         # If there's a cached meal plan and pantry is unchanged, load it
-        conn = st.connection('bodari_users.db', type='sql')
+        conn = st.connection('bodari_users', type='sql')
         with conn.session as session:
             session.execute('''
                 SELECT meal_plan FROM weekly_meal_plan
@@ -853,7 +853,7 @@ def main_page():
                 weekly_meal_plan = response.choices[0].message.content.strip()
 
                 # Save or update the meal plan
-                conn = st.connection('bodari_users.db', type='sql')
+                conn = st.connection('bodari_users', type='sql')
                 with conn.session as session:
                     session.execute('''
                         INSERT OR REPLACE INTO weekly_meal_plan (user_id, week_start, meal_plan)
@@ -874,7 +874,7 @@ def main_page():
         st.markdown("<div style='margin-top: 32px;'></div>", unsafe_allow_html=True)
         st.markdown("### Logged Meals")
 
-        conn = st.connection('bodari_users.db', type='sql')
+        conn = st.connection('bodari_users', type='sql')
         with conn.session as session:
             session.execute("SELECT date, meal_name, protein, fat, carbs, calories FROM user_meals WHERE user_id = ? ORDER BY date DESC", (user_id,))
             meals = session.fetchall()
