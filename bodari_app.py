@@ -111,8 +111,8 @@ def insert_recipe(recipe):
         "instructions": recipe['instructions']
     }
     res = supabase.table("recipes").insert(data).execute()
-    if res.error:
-        raise Exception(f"Failed to insert recipe: {res.error.message}")
+    if res.status_code != 201:
+        raise Exception(f"Failed to insert recipe: {res.data}")
 
 def get_all_recipes():
     res = supabase.table("recipes").select("*").execute()
@@ -410,7 +410,7 @@ def create_account():
                 'password': hashed_password
             }).execute()
             
-            if not res.error:
+            if res.status_code == 201:
                 user_id = res.data[0]['id'] 
                 st.session_state['user_id'] = user_id
                 st.session_state['page'] = 'onboarding'
@@ -497,7 +497,7 @@ def onboarding():
         
         res = supabase.table('user_account').insert(data).execute()
         
-        if not res.error:
+        if res.status_code == 201:
             st.success("User profile saved successfully.")
         else:
             st.error(f"Failed to save user profile: {res.error.message if res.error else 'Unknown error'}")
@@ -540,7 +540,7 @@ def main_page():
 
         # Display user profile
         res = supabase.table('user_account').select('*').eq('user_id', user_id).execute()
-        if not res.error and res.data:
+        if res.status_code == 200 and res.data:
             profile = res.data[0]  # Assuming user_id is unique, so one record
         else:
             profile = None
@@ -645,7 +645,7 @@ def main_page():
                         
                         res = supabase.table('user_meals').insert(data).execute()
                         
-                        if not res.error:
+                        if res.status_code == 201:
                             st.success("Meal saved successfully!")
                         else:
                             st.error(f"Failed to save meal: {res.error.message if res.error else 'Unknown error'}")
@@ -671,7 +671,7 @@ def main_page():
             .eq('date', date.today().isoformat()) \
             .execute()
         
-        if not res.error:
+        if res.status_code == 200:
             today_meals = res.data
         else:
             st.error(f"Failed to fetch meals: {res.error.message if res.error else 'Unknown error'}")
@@ -759,7 +759,7 @@ def main_page():
                     'unit': entry[4]
                 }
                 res = supabase.table('grocery_ingredients').upsert(data).execute()
-                if res.error:
+                if res.status_code != 201:
                     st.error(f"Error saving {entry[2]}: {res.error.message if res.error else 'Unknown error'}")
 
                 st.success("Pantry ingredients saved successfully!")
@@ -779,7 +779,7 @@ def main_page():
             .eq('date', date.today().isoformat()) \
             .execute()
         
-        if not res.error:
+        if res.status_code == 200:
             pantry_rows = res.data
         else:
             st.error(f"Failed to fetch pantry data: {res.error.message if res.error else 'Unknown error'}")
@@ -799,7 +799,7 @@ def main_page():
             .limit(1) \
             .execute()
         
-        if not res.error and res.data:
+        if res.status_code == 200 and res.data:
             meal_plan = res.data[0]['meal_plan']
         else:
             meal_plan = None
@@ -842,7 +842,7 @@ def main_page():
                     'meal_plan': weekly_meal_plan
                 }).execute()
                 
-                if res.error:
+                if res.status_code != 200:
                     st.error(f"Failed to save weekly meal plan: {res.error.message if res.error else 'Unknown error'}")
 
             except  RateLimitError:
@@ -864,7 +864,7 @@ def main_page():
             .order('date', desc=True) \
             .execute()
         
-        if not res.error:
+        if res.status_code == 200:
             meals = res.data
         else:
             st.error(f"Failed to fetch meals: {res.error.message if res.error else 'Unknown error'}")
