@@ -534,8 +534,10 @@ def main_page():
         user_id = st.session_state.get('user_id')
         email = st.session_state.get('email')
 
-        if not user_id:
-            st.error("User not signed in. Redirecting to sign-in...")
+        try:
+            user_id_int = int(user_id)
+        except Exception:
+            st.error("Invalid user_id in session state.")
             st.session_state['page'] = 'sign_in'
             return
 
@@ -544,13 +546,12 @@ def main_page():
         st.write("User ID:", user_id)
         st.write("Raw Supabase Response:", res)
 
-        if getattr(res, "status_code", None) == 200 and res.data:
-            profile = res.data[0]  # Assuming user_id is unique, so one record
+        if res.data and len(res.data) > 0:
+            profile = res.data[0]  # One profile expected
         else:
             profile = None
             st.warning("Profile not found or error fetching profile.")
-
-
+        
         if not profile:
             st.warning("Profile not found. Please complete onboarding.")
             st.session_state['page'] = 'onboarding'
