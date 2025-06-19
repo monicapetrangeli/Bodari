@@ -111,8 +111,8 @@ def insert_recipe(recipe):
         "instructions": recipe['instructions']
     }
     res = supabase.table("recipes").insert(data).execute()
-    if res.response.status_code != 201:
-        raise Exception(f"Failed to insert recipe: {res.data}")
+    if res.error:
+        raise Exception(f"Failed to insert recipe: {res.error.message}")
 
 def get_all_recipes():
     res = supabase.table("recipes").select("*").execute()
