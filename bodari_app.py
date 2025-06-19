@@ -401,9 +401,9 @@ def create_account():
         if password != confirm_password:
             st.error("Passwords do not match. Please try again.")
             return
-
-        hashed_password = hash_password(password)
-
+            
+        hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+    
         try:
             res = supabase.table('users').insert({
                 'email': email,
@@ -411,7 +411,7 @@ def create_account():
             }).execute()
             
             if res.response.status_code == 201:
-                user_id = res.data[0]['id']  # Assuming 'id' is auto-generated
+                user_id = res.data[0]['id'] 
                 st.session_state['user_id'] = user_id
                 st.session_state['page'] = 'onboarding'
                 st.success("Account created successfully! Redirecting to onboarding...")
