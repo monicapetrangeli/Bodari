@@ -3,3 +3,5 @@ openai
 numpy
 pillow
 requests
+SQLAlchemy
+mysqlclient
