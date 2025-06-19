@@ -541,6 +541,9 @@ def main_page():
 
         # Display user profile
         res = supabase.table('user_account').select('*').eq('user_id', user_id).execute()
+        st.write("User ID:", user_id)
+        st.write("Raw Supabase Response:", res)
+
         if getattr(res, "status_code", None) == 200 and res.data:
             profile = res.data[0]  # Assuming user_id is unique, so one record
         else:
