@@ -14,7 +14,7 @@ from pathlib import Path
 import os
 
 def create_database():
-    conn = sqlite3.connect('bodari_users.db')
+    conn = st.connection('bodari_users.db', type='sql')
     c = conn.cursor()
     
     # Create table to store users credentials
@@ -104,7 +104,7 @@ def create_database():
 
 # -------------------- Recipes Functions --------------------
 def insert_recipe(recipe):
-    conn = sqlite3.connect('bodari_users.db')
+    conn = st.connection('bodari_users.db', type='sql')
     c = conn.cursor()
 
     c.execute('''
@@ -124,7 +124,7 @@ def insert_recipe(recipe):
     conn.close()
 
 def get_all_recipes():
-    conn = sqlite3.connect('bodari_users.db')
+    conn = st.connection('bodari_users.db', type='sql')
     c = conn.cursor()
     c.execute("SELECT title, image_url, diet, ingredients, calories, macros, instructions FROM recipes")
     rows = c.fetchall()
@@ -413,7 +413,7 @@ def sign_in():
     password = st.text_input("Password", type="password", placeholder="Enter your password")
 
     if st.button("Let's start"):
-        conn = sqlite3.connect('bodari_users.db')
+        conn = st.connection('bodari_users.db', type='sql')
         c = conn.cursor()
         c.execute('SELECT id, password FROM users WHERE email = ?', (email,))
         user = c.fetchone()
@@ -468,7 +468,7 @@ def create_account():
 
         hashed_password = hash_password(password)
 
-        conn = sqlite3.connect('bodari_users.db')
+        conn = st.connection('bodari_users.db', type='sql')
         c = conn.cursor()
         try:
             c.execute('INSERT INTO users (email, password) VALUES (?, ?)', (email, hashed_password))
@@ -515,7 +515,7 @@ def onboarding():
         return
 
     # Avoid duplicate onboarding
-    conn = sqlite3.connect('bodari_users.db')
+    conn = st.connection('bodari_users.db', type='sql')
     c = conn.cursor()
     c.execute('SELECT * FROM user_account WHERE user_id = ?', (user_id,))
     profile = c.fetchone()
@@ -543,7 +543,7 @@ def onboarding():
     # Save profile
     if st.button("Save Profile"):
         dietary_restrictions_str = ','.join(dietary_restrictions)
-        conn = sqlite3.connect('bodari_users.db')
+        conn = st.connection('bodari_users.db', type='sql')
         c = conn.cursor()
         c.execute('''
             INSERT INTO user_account (user_id, name, dob, gender, height, weight, activity_level, goal, timeline, dietary_restrictions)
@@ -589,7 +589,7 @@ def main_page():
             return
 
         # Display user profile
-        conn = sqlite3.connect('bodari_users.db')
+        conn = st.connection('bodari_users.db', type='sql')
         c = conn.cursor()
         c.execute('SELECT * FROM user_account WHERE user_id = ?', (user_id,))
         profile = c.fetchone()
@@ -680,7 +680,7 @@ def main_page():
                         calories = extract_macro("calories", reply)
                                      
                         # Save to DB
-                        conn = sqlite3.connect("bodari_users.db")
+                        conn = st.connection('bodari_users.db', type='sql')
                         c = conn.cursor()
                         c.execute("""
                             INSERT INTO user_meals (user_id, date, meal_name, ingredients, protein, fat, carbs, calories)
@@ -707,7 +707,7 @@ def main_page():
         macros = macros_formula(daily_calories, goal)
 
         # --- Calculate Consumed Calories and Macros ---
-        conn = sqlite3.connect("bodari_users.db")
+        conn = st.connection('bodari_users.db', type='sql')
         c = conn.cursor()
         c.execute("SELECT protein, fat, carbs, calories FROM user_meals WHERE user_id = ? AND date = ?", (user_id, date.today()))
         today_meals = c.fetchall()
@@ -786,7 +786,7 @@ def main_page():
                 pantry_data.append((user_id, date.today(), ingredient, quantity if quantity > 0 else None, unit if quantity > 0 else "units"))
 
         if st.button("Save Pantry"):
-            conn = sqlite3.connect('bodari_users.db')
+            conn = st.connection('bodari_users.db', type='sql')
             c = conn.cursor()
             for entry in pantry_data:
                 try:
@@ -809,7 +809,7 @@ def main_page():
         week_start = get_current_week_start()
 
         # Check pantry ingredients for today
-        conn = sqlite3.connect('bodari_users.db')
+        conn = st.connection('bodari_users.db', type='sql')
         c = conn.cursor()
         c.execute('''
             SELECT ingredient, quantity, unit FROM grocery_ingredients
@@ -825,7 +825,7 @@ def main_page():
             )
 
         # If there's a cached meal plan and pantry is unchanged, load it
-        conn = sqlite3.connect('bodari_users.db')
+        conn = st.connection('bodari_users.db', type='sql')
         c = conn.cursor()
         c.execute('''
             SELECT meal_plan FROM weekly_meal_plan
@@ -865,7 +865,7 @@ def main_page():
                 weekly_meal_plan = response.choices[0].message.content.strip()
 
                 # Save or update the meal plan
-                conn = sqlite3.connect('bodari_users.db')
+                conn = st.connection('bodari_users.db', type='sql')
                 c = conn.cursor()
                 c.execute('''
                     INSERT OR REPLACE INTO weekly_meal_plan (user_id, week_start, meal_plan)
@@ -886,7 +886,7 @@ def main_page():
         st.markdown("<div style='margin-top: 32px;'></div>", unsafe_allow_html=True)
         st.markdown("### Logged Meals")
 
-        conn = sqlite3.connect("bodari_users.db")
+        conn = st.connection('bodari_users.db', type='sql')
         c = conn.cursor()
         c.execute("SELECT date, meal_name, protein, fat, carbs, calories FROM user_meals WHERE user_id = ? ORDER BY date DESC", (user_id,))
         meals = c.fetchall()
