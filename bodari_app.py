@@ -498,10 +498,10 @@ def onboarding():
         
         res = supabase.table('user_account').insert(data).execute()
         
-        if res.metadata.response.status_code == 201:
-            st.success("User profile saved successfully.")
-        else:
-            st.error(f"Failed to save user profile: {res.error.message if res.error else 'Unknown error'}")
+        #if res.metadata.response.status_code == 201:
+        #    st.success("User profile saved successfully.")
+        #else:
+        #    st.error(f"Failed to save user profile: {res.error.message if res.error else 'Unknown error'}")
 
         st.success("✅ Profile saved! Redirecting to the main page...")
         st.session_state['page'] = 'main'
@@ -541,11 +541,11 @@ def main_page():
 
         # Display user profile
         res = supabase.table('user_account').select('*').eq('user_id', user_id).execute()
-        if res.metadata.response.status_code == 200 and res.data:
-            profile = res.data[0]  # Assuming user_id is unique, so one record
-        else:
-            profile = None
-            st.warning("Profile not found or error fetching profile.")
+        #if res.metadata.response.status_code == 200 and res.data:
+        #    profile = res.data[0]  # Assuming user_id is unique, so one record
+        #else:
+        #    profile = None
+        #    st.warning("Profile not found or error fetching profile.")
 
 
         if not profile:
@@ -646,10 +646,10 @@ def main_page():
                         
                         res = supabase.table('user_meals').insert(data).execute()
                         
-                        if res.metadata.response.status_code == 201:
-                            st.success("Meal saved successfully!")
-                        else:
-                            st.error(f"Failed to save meal: {res.error.message if res.error else 'Unknown error'}")
+                        #if res.metadata.response.status_code == 201:
+                        #    st.success("Meal saved successfully!")
+                        #else:
+                        #    st.error(f"Failed to save meal: {res.error.message if res.error else 'Unknown error'}")
     
                             st.success(f"Meal '{meal_name}' saved with estimated macros!")
                             st.session_state["show_add_meal_form"] = False
@@ -672,11 +672,11 @@ def main_page():
             .eq('date', date.today().isoformat()) \
             .execute()
         
-        if res.metadata.response.status_code == 200:
-            today_meals = res.data
-        else:
-            st.error(f"Failed to fetch meals: {res.error.message if res.error else 'Unknown error'}")
-            today_meals = []
+        #if res.metadata.response.status_code == 200:
+        #    today_meals = res.data
+        #else:
+        #    st.error(f"Failed to fetch meals: {res.error.message if res.error else 'Unknown error'}")
+        #    today_meals = []
 
         consumed = {'calories': 0, 'protein': 0, 'fat': 0, 'carbs': 0}
         for meal in today_meals:
@@ -760,8 +760,8 @@ def main_page():
                     'unit': entry[4]
                 }
                 res = supabase.table('grocery_ingredients').upsert(data).execute()
-                if res.metadata.response.status_code != 201:
-                    st.error(f"Error saving {entry[2]}: {res.error.message if res.error else 'Unknown error'}")
+                #if res.metadata.response.status_code != 201:
+                #    st.error(f"Error saving {entry[2]}: {res.error.message if res.error else 'Unknown error'}")
 
                 st.success("Pantry ingredients saved successfully!")
                 st.markdown("<br>", unsafe_allow_html=True)
@@ -780,11 +780,11 @@ def main_page():
             .eq('date', date.today().isoformat()) \
             .execute()
         
-        if res.metadata.response.status_code == 200:
-            pantry_rows = res.data
-        else:
-            st.error(f"Failed to fetch pantry data: {res.error.message if res.error else 'Unknown error'}")
-            pantry_rows = []
+        #if res.metadata.response.status_code == 200:
+        #    pantry_rows = res.data
+        #else:
+         #   st.error(f"Failed to fetch pantry data: {res.error.message if res.error else 'Unknown error'}")
+          #  pantry_rows = []
 
         pantry_ingredients_str = ""
         if pantry_rows:
@@ -800,11 +800,11 @@ def main_page():
             .limit(1) \
             .execute()
         
-        if res.metadata.response.status_code == 200 and res.data:
-            meal_plan = res.data[0]['meal_plan']
-        else:
-            meal_plan = None
-            st.error("No meal plan found or failed to fetch.")
+        #if res.metadata.response.status_code == 200 and res.data:
+        #    meal_plan = res.data[0]['meal_plan']
+        #else:
+        #    meal_plan = None
+        #    st.error("No meal plan found or failed to fetch.")
 
         # If meal plan already exists and pantry wasn't updated (assumes user hit Save Pantry first), load existing
         if row and not pantry_ingredients_str:
@@ -843,8 +843,8 @@ def main_page():
                     'meal_plan': weekly_meal_plan
                 }).execute()
                 
-                if res.metadata.response.status_code != 200:
-                    st.error(f"Failed to save weekly meal plan: {res.error.message if res.error else 'Unknown error'}")
+                #if res.metadata.response.status_code != 200:
+                #    st.error(f"Failed to save weekly meal plan: {res.error.message if res.error else 'Unknown error'}")
 
             except  RateLimitError:
                 st.warning("Rate limit reached. Waiting for 20 seconds before retrying...")
@@ -865,11 +865,11 @@ def main_page():
             .order('date', desc=True) \
             .execute()
         
-        if res.metadata.response.status_code == 200:
-            meals = res.data
-        else:
-            st.error(f"Failed to fetch meals: {res.error.message if res.error else 'Unknown error'}")
-            meals = []
+        #if res.metadata.response.status_code == 200:
+        #    meals = res.data
+        #else:
+        #    st.error(f"Failed to fetch meals: {res.error.message if res.error else 'Unknown error'}")
+        #    meals = []
 
         if not meals:
             st.info("You haven’t added any meals yet.")
