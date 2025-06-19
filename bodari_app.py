@@ -854,11 +854,14 @@ def main_page():
         # Check pantry ingredients for today
         conn = st.connection('bodari_users', type='sql')
         with conn.session as session:
-            session.execute(text('''
-                SELECT ingredient, quantity, unit FROM grocery_ingredients
-                WHERE user_id = ? AND date = ?
-            ''', (user_id, date.today())))
-            pantry_rows = session.fetchall()
+            result = session.execute(
+                text('''
+                    SELECT ingredient, quantity, unit FROM grocery_ingredients
+                    WHERE user_id = :user_id AND date = :query_date
+                '''),
+                {'user_id': user_id, 'query_date': date.today()}
+            )
+            pantry_rows = result.fetchall()
             session.close()
 
         pantry_ingredients_str = ""
@@ -870,11 +873,14 @@ def main_page():
         # If there's a cached meal plan and pantry is unchanged, load it
         conn = st.connection('bodari_users', type='sql')
         with conn.session as session:
-            session.execute(text('''
-                SELECT meal_plan FROM weekly_meal_plan
-                WHERE user_id = ? AND week_start = ?
-            ''', (user_id, week_start)))
-            row = session.fetchone()
+            result = session.execute(
+                text('''
+                    SELECT meal_plan FROM weekly_meal_plan
+                    WHERE user_id = :user_id AND week_start = :week_start
+                '''),
+                {'user_id': user_id, 'week_start': week_start}
+            )
+            row = result.fetchone()
             session.close()
 
         # If meal plan already exists and pantry wasn't updated (assumes user hit Save Pantry first), load existing
@@ -910,10 +916,17 @@ def main_page():
                 # Save or update the meal plan
                 conn = st.connection('bodari_users', type='sql')
                 with conn.session as session:
-                    session.execute(text('''
-                        INSERT OR REPLACE INTO weekly_meal_plan (user_id, week_start, meal_plan)
-                        VALUES (?, ?, ?)
-                    ''', (user_id, week_start, weekly_meal_plan)))
+                    session.execute(
+                        text('''
+                            INSERT OR REPLACE INTO weekly_meal_plan (user_id, week_start, meal_plan)
+                            VALUES (:user_id, :week_start, :meal_plan)
+                        '''),
+                        {
+                            'user_id': user_id,
+                            'week_start': week_start,
+                            'meal_plan': weekly_meal_plan
+                        }
+                    )
                     session.commit()
                     session.close()
             except  RateLimitError:
@@ -931,8 +944,16 @@ def main_page():
 
         conn = st.connection('bodari_users', type='sql')
         with conn.session as session:
-            session.execute(text("SELECT date, meal_name, protein, fat, carbs, calories FROM user_meals WHERE user_id = ? ORDER BY date DESC", (user_id,)))
-            meals = session.fetchall()
+            result = session.execute(
+                text('''
+                    SELECT date, meal_name, protein, fat, carbs, calories
+                    FROM user_meals
+                    WHERE user_id = :user_id
+                    ORDER BY date DESC
+                '''),
+                {'user_id': user_id}
+            )
+            meals = result.fetchall()
             session.close()
 
         if not meals:
@@ -1113,8 +1134,6 @@ def main_page():
                     render_recipe(recipe)
 
 # -------------------- App Initialization --------------------
-
-create_database()
 
 if 'page' not in st.session_state:
     st.session_state['page'] = 'sign_in'
