@@ -411,13 +411,13 @@ def create_account():
                 'password': hashed_password
             }).execute()
             
-            if res.metadata.response.status_code == 201:
-                user_id = res.data[0]['id'] 
-                st.session_state['user_id'] = user_id
-                st.session_state['page'] = 'onboarding'
-                st.success("Account created successfully! Redirecting to onboarding...")
-            else:
-                st.error("Failed to create account. Please try again.")
+            #if res.metadata.response.status_code == 201:
+            #    user_id = res.data[0]['id'] 
+            #    st.session_state['user_id'] = user_id
+            #    st.session_state['page'] = 'onboarding'
+            #    st.success("Account created successfully! Redirecting to onboarding...")
+            #else:
+            #    st.error("Failed to create account. Please try again.")
         except Exception as e:
             if 'duplicate key' in str(e).lower():
                 st.error("An account with this email already exists. Please sign in.")
