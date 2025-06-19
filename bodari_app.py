@@ -501,7 +501,7 @@ def onboarding():
         if res.data:
             st.success("User profile saved successfully.")
         else:
-            st.error(f"Failed to save user profile: {res.error.message if res.error else 'Unknown error'}")
+            st.error(f"Failed to save user profile. Response:{res}")
 
         st.success("✅ Profile saved! Redirecting to the main page...")
         st.session_state['page'] = 'main'
@@ -662,7 +662,7 @@ def main_page():
                         if getattr(res, "status_code", None) == 201 and res.data:
                             st.success("Meal saved successfully!")
                         else:
-                            st.error(f"Failed to save meal: {res.error.message if res.error else 'Unknown error'}")
+                            st.error(f"Failed to save meal. Response: {res}")
     
                             st.success(f"Meal '{meal_name}' saved with estimated macros!")
                             st.session_state["show_add_meal_form"] = False
@@ -688,7 +688,7 @@ def main_page():
         if getattr(res, "status_code", None) == 201 and res.data:
             today_meals = res.data
         else:
-            st.error(f"Failed to fetch meals: {res.error.message if res.error else 'Unknown error'}")
+            st.error(f"Failed to fetch meals. Response: {res}")
             today_meals = []
 
         consumed = {'calories': 0, 'protein': 0, 'fat': 0, 'carbs': 0}
@@ -774,7 +774,7 @@ def main_page():
                 }
                 res = supabase.table('grocery_ingredients').upsert(data).execute()
                 if getattr(res, "status_code", None) != 201:
-                    st.error(f"Error saving {entry[2]}: {res.error.message if res.error else 'Unknown error'}")
+                    st.error(f"Error saving {entry[2]}. Response: {res}")
 
                 st.success("Pantry ingredients saved successfully!")
                 st.markdown("<br>", unsafe_allow_html=True)
@@ -796,7 +796,7 @@ def main_page():
         if getattr(res, "status_code", None) == 200 and res.data:
             pantry_rows = res.data
         else:
-            st.error(f"Failed to fetch pantry data: {res.error.message if res.error else 'Unknown error'}")
+            st.error(f"Failed to fetch pantry data. Response: {res}")
             pantry_rows = []
 
         pantry_ingredients_str = ""
@@ -857,7 +857,7 @@ def main_page():
                 }).execute()
                 
                 if getattr(res, "status_code", None) != 200:
-                    st.error(f"Failed to save weekly meal plan: {res.error.message if res.error else 'Unknown error'}")
+                    st.error(f"Failed to save weekly meal plan. Response: {res}")
 
             except  RateLimitError:
                 st.warning("Rate limit reached. Waiting for 20 seconds before retrying...")
@@ -881,7 +881,7 @@ def main_page():
         if getattr(res, "status_code", None) == 200 and res.data:
             meals = res.data
         else:
-            st.error(f"Failed to fetch meals: {res.error.message if res.error else 'Unknown error'}")
+            st.error(f"Failed to fetch meals. Response: {res}")
             meals = []
 
         if not meals:
