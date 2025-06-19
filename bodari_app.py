@@ -13,6 +13,12 @@ import requests
 from pathlib import Path
 import os
 from sqlalchemy import text
+from supabase import create_client, Client
+
+SUPABASE_URL = st.secrets["supabase"]["url"]
+SUPABASE_KEY = st.secrets["supabase"]["key"]
+
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 def create_database():
     conn = st.connection('bodari_users', type='sql')
