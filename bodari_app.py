@@ -15,7 +15,7 @@ import os
 from sqlalchemy import text
 
 def create_database():
-    conn = st.connection('bodari_users', type='sql')
+    conn = st.connection('bodari_users.db', type='sql')
     with conn.session as session:
         session.execute(text('''
             CREATE TABLE IF NOT EXISTS users(
@@ -94,7 +94,7 @@ def create_database():
 
 # -------------------- Recipes Functions --------------------
 def insert_recipe(recipe):
-    conn = st.connection('bodari_users', type='sql')
+    conn = st.connection('bodari_users.db', type='sql')
     with conn.session as session:
         session.execute('''
         INSERT INTO recipes (title, image_url, diet, ingredients, calories, macros, instructions)
