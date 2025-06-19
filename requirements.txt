@@ -5,3 +5,4 @@ pillow
 requests
 SQLAlchemy
 pymysql
+supabase
