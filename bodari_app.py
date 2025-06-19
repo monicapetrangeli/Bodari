@@ -12,18 +12,19 @@ import json
 import requests
 from pathlib import Path
 import os
+from sqlalchemy import text
 
 def create_database():
     conn = st.connection('bodari_users', type='sql')
     with conn.session as session:
-        session.execute('''
+        session.execute(text('''
             CREATE TABLE IF NOT EXISTS users(
                 id INTEGER PRIMARY KEY, 
                 email TEXT UNIQUE, 
                 password TEXT)
-        ''')
+        '''))
 
-        session.execute('''
+        session.execute(text('''
             CREATE TABLE IF NOT EXISTS user_account (
                 user_id INTEGER PRIMARY KEY,
                 name TEXT NOT NULL,
@@ -37,9 +38,9 @@ def create_database():
                 dietary_restrictions TEXT,
                 FOREIGN KEY (user_id) REFERENCES users (id)
             )
-        ''')
+        '''))
 
-        session.execute('''
+        session.execute(text('''
             CREATE TABLE IF NOT EXISTS grocery_ingredients (
                 user_id INTEGER NOT NULL,
                 date DATE NOT NULL,
@@ -49,9 +50,9 @@ def create_database():
                 PRIMARY KEY (user_id, date),
                 FOREIGN KEY (user_id) REFERENCES users (id)
             )
-        ''')
+        '''))
 
-        session.execute('''
+        session.execute(text('''
             CREATE TABLE IF NOT EXISTS weekly_meal_plan (
                 user_id INTEGER NOT NULL,
                 week_start DATE NOT NULL,
@@ -59,9 +60,9 @@ def create_database():
                 PRIMARY KEY (user_id, week_start),
                 FOREIGN KEY (user_id) REFERENCES users (id)
             )
-        ''')
+        '''))
 
-        session.execute('''
+        session.execute(text('''
             CREATE TABLE IF NOT EXISTS recipes (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 title TEXT NOT NULL,
@@ -72,9 +73,9 @@ def create_database():
                 macros TEXT,
                 instructions TEXT
             )
-        ''')
+        '''))
 
-        session.execute('''
+        session.execute(text('''
             CREATE TABLE IF NOT EXISTS user_meals (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 user_id INTEGER,
@@ -87,7 +88,7 @@ def create_database():
                 calories REAL,
                 FOREIGN KEY (user_id) REFERENCES users(id)
             )
-        ''')
+        '''))
 
         session.commit()
 
