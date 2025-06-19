@@ -486,7 +486,7 @@ def onboarding():
         data = {
             'user_id': user_id,
             'name': name,
-            'dob': dob,
+            'dob': dob.isoformat(),
             'gender': gender,
             'height': height,
             'weight': weight,
@@ -498,7 +498,7 @@ def onboarding():
         
         res = supabase.table('user_account').insert(data).execute()
         
-        if getattr(res, "status_code", None) == 201 and res.data:
+        if res.data:
             st.success("User profile saved successfully.")
         else:
             st.error(f"Failed to save user profile: {res.error.message if res.error else 'Unknown error'}")
