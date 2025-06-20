@@ -666,7 +666,7 @@ def main_page():
                         st.success(f"Meal '{meal_name}' saved with estimated macros!")
                         st.session_state["show_add_meal_form"] = False
                         st.rerun()
-
+                        print("OpenAI raw reply:\n", reply)
                     except OpenAIError as e:
                         st.error(f"OpenAI estimation failed: {e}")
                         return
