@@ -123,7 +123,7 @@ def get_all_recipes():
             "title": row["title"],
             "image": row["image_url"],
             "diet": json.loads(row["diet"]) if row.get("diet") else [],
-            "ingredients": json.loads(row["ingredients"]) if row.get("ingredients") else {},
+            "ingredients": row["ingredients"] if isinstance(row["ingredients"], dict) else json.loads(row["ingredients"]),
             "calories": row["calories"],
             "macros": json.loads(row["macros"]) if row.get("macros") else {},
             "instructions": row["instructions"]
@@ -543,8 +543,6 @@ def main_page():
 
         # Display user profile
         res = supabase.table('user_account').select('*').eq('user_id', user_id).execute()
-        st.write("User ID:", user_id)
-        st.write("Raw Supabase Response:", res)
 
         if res.data and len(res.data) > 0:
             profile = res.data[0]  # One profile expected
@@ -793,7 +791,7 @@ def main_page():
             .eq('date', date.today().isoformat()) \
             .execute()
         
-        if getattr(res, "status_code", None) == 200 and res.data:
+        if res.data:
             pantry_rows = res.data
         else:
             st.error(f"Failed to fetch pantry data. Response: {res}")
@@ -816,7 +814,7 @@ def main_page():
             .limit(1) \
             .execute()
         
-        if getattr(res, "status_code", None) == 200 and res.data:
+        if res.data:
             meal_plan = res.data[0]['meal_plan']
         else:
             meal_plan = None
