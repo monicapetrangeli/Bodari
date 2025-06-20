@@ -736,7 +736,6 @@ def main_page():
         macro_bar("Fat", macros['fat'], consumed['fat'], remaining['fat'], "#14b3ad")
         macro_bar("Carbs", macros['carbs'], consumed['carbs'], remaining['carbs'], "#fbad05")
 
-        st.write("OpenAI raw reply:\n", reply)
         # -------------------- Pantry Ingredients Section --------------------
         st.markdown("<div style='margin-top: 32px;'></div>", unsafe_allow_html=True)
         st.markdown("### What's in your pantry?")
