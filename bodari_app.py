@@ -1013,6 +1013,7 @@ def main_page():
         meal_plan_text = res.data[0]['meal_plan']
     
         # --- Extract ingredients from meal plan ---
+        import re
         from collections import defaultdict
     
         ingredient_counts = defaultdict(float)
