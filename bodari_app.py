@@ -637,11 +637,11 @@ def main_page():
 
                         import re
                         def extract_macro(name, text):
-                            pattern = rf"{name}[:\-]?\s*(\d+(?:\.\d+)?)\s*g?"
+                            pattern = rf"({name})[:\-]?\s*(\d+(?:\.\d+)?)\s*g?"
                             match = re.search(pattern, text, re.IGNORECASE)
-                            if match:
-                                print(f"Extracted {name}: {match.group(1)}")
-                                return float(match.group(1))
+                            if match and match.group(2) is not None:
+                                print(f"Extracted {name}: {match.group(2)}")
+                                return float(match.group(2))
                             else:
                                 print(f"Failed to extract {name}")
                                 return 0.0
