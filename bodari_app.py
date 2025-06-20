@@ -786,26 +786,27 @@ def main_page():
         st.markdown("Let's create a weekly meal plan tailored to your needs:")
 
         week_start = get_current_week_start()
-
-        # Check pantry ingredients for today
+        today_str = date.today().isoformat()
+        
+        # 1. Fetch pantry ingredients added within the current week
         res = supabase.table('grocery_ingredients') \
-            .select('ingredient, quantity, unit') \
+            .select('ingredient, quantity, unit, date') \
             .eq('user_id', user_id) \
-            .eq('date', date.today().isoformat()) \
+            .gte('date', week_start.isoformat()) \
             .execute()
         
         pantry_rows = res.data if res.data else []
-
-        pantry_ingredients_str = ""
-        if pantry_rows:
-            pantry_ingredients_str = "\n".join(
-                [
-                    f"{row['ingredient']} ({row['quantity']} {row['unit']})"
-                    for row in pantry_rows if row.get('quantity')
-                ]
-            )
-
-        # If there's a cached meal plan and pantry is unchanged, load it
+        
+        # 2. Check if any pantry entry was added today
+        pantry_updated_today = any(row.get('date') == today_str for row in pantry_rows)
+        
+        # 3. Build pantry string for AI only from valid entries this week
+        pantry_ingredients_str = "\n".join([
+            f"{row['ingredient']} ({row['quantity']} {row['unit']})"
+            for row in pantry_rows if row.get('quantity')
+        ])
+        
+        # 4. Check for cached meal plan
         res = supabase.table('weekly_meal_plan') \
             .select('meal_plan') \
             .eq('user_id', user_id) \
@@ -813,24 +814,20 @@ def main_page():
             .limit(1) \
             .execute()
         
-        if res.data:
-            meal_plan = res.data[0]['meal_plan']
-        else:
-            meal_plan = None
-            st.error("No meal plan found or failed to fetch.")
-
-        # If meal plan already exists and pantry wasn't updated (assumes user hit Save Pantry first), load existing
-        if meal_plan and not pantry_ingredients_str:
+        meal_plan = res.data[0]['meal_plan'] if res.data else None
+        
+        # 5. Main logic: only regenerate meal plan if pantry was updated today
+        if meal_plan and not pantry_updated_today:
             weekly_meal_plan = meal_plan
         else:
             # Compose the prompt
             prompt = f"""
             The user has the following dietary restrictions: {dietary_restrictions_list} and needs to consume {daily_calories} calories daily with the following macros composition in grams: {macros}.
             """
-            
+        
             if pantry_ingredients_str:
                 prompt += f"\nThe user currently has the following ingredients available in their pantry: {pantry_ingredients_str}. Try to incorporate them into the meal plan when possible, but you can also use other ingredients to complete the meals."
-
+        
             prompt += """
             Please create a weekly meal plan with breakfast, lunch, dinner, and two snacks for each day of the week. 
             Add the weight of each ingredient for each meal. 
@@ -838,7 +835,7 @@ def main_page():
             Present the plan in a table format with columns for each meal and rows for the days of the week (Monday to Sunday). 
             Each cell should include the meal description with ingredients and their quantities.
             """
-
+        
             try:
                 response = client.chat.completions.create(
                     model="gpt-4",
@@ -848,26 +845,28 @@ def main_page():
                     ]
                 )
                 weekly_meal_plan = response.choices[0].message.content.strip()
-
-                # Save or update the meal plan
+        
+                # Save/update plan
                 res = supabase.table('weekly_meal_plan').upsert({
                     'user_id': user_id,
                     'week_start': week_start.isoformat(),
                     'meal_plan': weekly_meal_plan
                 }).execute()
-                
+        
                 if not res.data:
                     st.error(f"Failed to save weekly meal plan. Response: {res}")
-
-            except  RateLimitError:
+        
+            except RateLimitError:
                 st.warning("Rate limit reached. Waiting for 20 seconds before retrying...")
                 time.sleep(20)
                 return
             except OpenAIError as e:
                 st.error(f"Error in creating your weekly meal plan with OpenAI: {e}")
                 return
-
+        
+        # Show plan
         st.markdown(weekly_meal_plan)
+
 
         st.markdown("<div style='margin-top: 32px;'></div>", unsafe_allow_html=True)
         st.markdown("### Logged Meals")
