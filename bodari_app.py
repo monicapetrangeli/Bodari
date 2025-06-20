@@ -997,8 +997,14 @@ def main_page():
             recipes = get_all_recipes()
 
             def matches_filters(recipe):
-                diet_ok = all(d in recipe['diet'] or d == "None" for d in selected_diets)
-                ingredient_ok = any(ing in recipe['ingredients'] for ing in selected_ingredients)
+                    diet_ok = any(d in recipe['diet'] for d in selected_diets if d != "None")
+                else:
+                    diet_ok = True
+                if selected_ingredients:
+                    ingredient_ok = any(ing in recipe['ingredients'] for ing in selected_ingredients)
+                else:
+                    ingredient_ok = True
+            
                 return diet_ok and ingredient_ok
 
             # Determine if filters are active
