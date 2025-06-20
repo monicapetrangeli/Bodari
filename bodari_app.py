@@ -585,7 +585,8 @@ def main_page():
             st.markdown("### Add a Meal You Ate")
             with st.form("add_meal_form"):
                 meal_name = st.text_input("Meal name (e.g. Chicken Wrap, Pasta Bowl)")
-                ingredients_raw = st.text_area("Ingredients and quantities (e.g. Chicken: 150g\\nRice: 100g)")
+                ingredients_raw = st.text_area("""Ingredients and quantities.
+                Please input in the following structure - ingredient: quantity""")
                 meal_date = st.date_input("Date", value=date.today())
                 submitted = st.form_submit_button("Save Meal")
 
