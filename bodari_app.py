@@ -649,7 +649,7 @@ def main_page():
                         
                         protein = extract_macro("protein", reply)
                         fat = extract_macro("fat", reply)
-                        carbs = extract_macro("carb|carbohydrates", reply)
+                        carbs = extract_macro("carbs|carbohydrates", reply)
                         calories = extract_macro("calories", reply)
                         
                         # Save to DB
