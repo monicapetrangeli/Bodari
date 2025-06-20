@@ -636,14 +636,21 @@ def main_page():
                         def extract_macro(name, text):
                             pattern = rf"{name}[:\-]?\s*(\d+(?:\.\d+)?)\s*g?"
                             match = re.search(pattern, text, re.IGNORECASE)
-                            return float(match.group(1)) if match else 0.0
+                            if match:
+                                print(f"Extracted {name}: {match.group(1)}")
+                                return float(match.group(1))
+                            else:
+                                print(f"Failed to extract {name}")
+                                return 0.0
                         
                         protein = extract_macro("protein", reply)
                         fat = extract_macro("fat", reply)
                         carbs = extract_macro("carb|carbohydrates", reply)
                         calories = extract_macro("calories", reply)
 
-                        print("Macros extracted:", protein, fat, carbs, calories)
+                        st.write("Macros extracted:", protein, fat, carbs, calories)
+                        st.write("OpenAI raw reply:\n", reply)
+                        
                         # Save to DB
                         data = {
                             'user_id': user_id,
@@ -663,9 +670,9 @@ def main_page():
                         else:
                             st.error(f"Failed to save meal. Response: {res}")
     
-                        st.success(f"Meal '{meal_name}' saved with estimated macros!")
-                        st.session_state["show_add_meal_form"] = False
-                        st.rerun()
+                            st.success(f"Meal '{meal_name}' saved with estimated macros!")
+                            st.session_state["show_add_meal_form"] = False
+                            st.rerun()
                     except OpenAIError as e:
                         st.error(f"OpenAI estimation failed: {e}")
                         return
