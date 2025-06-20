@@ -650,9 +650,6 @@ def main_page():
                         fat = extract_macro("fat", reply)
                         carbs = extract_macro("carb|carbohydrates", reply)
                         calories = extract_macro("calories", reply)
-
-                        st.write("Macros extracted:", protein, fat, carbs, calories)
-                        st.write("OpenAI raw reply:\n", reply)
                         
                         # Save to DB
                         data = {
@@ -673,9 +670,9 @@ def main_page():
                         else:
                             st.error(f"Failed to save meal. Response: {res}")
     
-                            st.success(f"Meal '{meal_name}' saved with estimated macros!")
-                            st.session_state["show_add_meal_form"] = False
-                            st.rerun()
+                        st.success(f"Meal '{meal_name}' saved with estimated macros!")
+                        st.session_state["show_add_meal_form"] = False
+                        st.rerun()
                     except OpenAIError as e:
                         st.error(f"OpenAI estimation failed: {e}")
                         return
