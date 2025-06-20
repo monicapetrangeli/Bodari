@@ -1013,22 +1013,21 @@ def main_page():
         meal_plan_text = res.data[0]['meal_plan']
     
         # --- Extract ingredients from meal plan ---
-        import re
         from collections import defaultdict
-    
+        import re
+        
         ingredient_counts = defaultdict(float)
-    
-        # Simple pattern to find lines like "- Chicken: 150g"
-        lines = meal_plan_text.split('\n')
-        for line in lines:
-            if re.match(r"[-•*]?\s*[A-Za-z\s]+:\s*\d+", line):
-                try:
-                    item, qty = line.split(":", 1)
-                    item = item.strip("- •* \t").strip()
-                    qty_val = re.findall(r"[\d.]+", qty)
-                    ingredient_counts[item] += float(qty_val[0]) if qty_val else 0
-                except Exception:
-                    continue
+        
+        # Extract all lines that look like ingredient(quantity)
+        matches = re.findall(r'([\w\s]+)\s*\((\d+(?:\.\d+)?)\s*(g|ml)?\)', meal_plan_text)
+        
+        for name, qty, unit in matches:
+            normalized_name = name.strip().lower()
+            amount = float(qty)
+            if unit == "ml":
+                # Optionally treat ml differently if needed
+                pass
+            ingredient_counts[normalized_name] += amount
     
         # --- Get pantry ingredients added this week ---
         pantry_res = supabase.table('grocery_ingredients') \
@@ -1036,23 +1035,26 @@ def main_page():
             .eq('user_id', user_id) \
             .gte('date', week_start.isoformat()) \
             .execute()
-    
-        pantry_items = [row['ingredient'].lower() for row in pantry_res.data] if pantry_res.data else []
+        
+        pantry_items = [row['ingredient'].strip().lower() for row in pantry_res.data] if pantry_res.data else []
     
         # --- Compute grocery list ---
-        grocery_items = {k: v for k, v in ingredient_counts.items() if k.lower() not in pantry_items}
+        grocery_items = {
+            k: v for k, v in ingredient_counts.items()
+            if k not in pantry_items
+        }
+
     
         if not grocery_items:
-            st.success("Your pantry is fully stocked for this week's meals!")
+            st.success("🎉 Your pantry is fully stocked for this week's meals!")
         else:
-            st.markdown("Here’s what you still need to buy for this week's plan:")
-            checked_items = []
+            st.markdown("Here’s what you still need to buy:")
+            checked = []
             for item, qty in grocery_items.items():
-                if st.checkbox(f"{item} – {round(qty)}g", key=f"grocery_{item}"):
-                    checked_items.append(item)
-    
-            if checked_items:
-                st.success(f"You marked {len(checked_items)} item(s) as bought.")
+                if st.checkbox(f"{item.title()} – {round(qty)}g", key=f"grocery_{item}"):
+                    checked.append(item)
+            if checked:
+                st.success(f"You marked {len(checked)} item(s) as bought.")
 
 # -------------------- App Initialization --------------------
 
