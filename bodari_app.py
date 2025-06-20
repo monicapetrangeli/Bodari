@@ -856,7 +856,7 @@ def main_page():
                     'meal_plan': weekly_meal_plan
                 }).execute()
                 
-                if getattr(res, "status_code", None) != 200:
+                if not res.data:
                     st.error(f"Failed to save weekly meal plan. Response: {res}")
 
             except  RateLimitError:
