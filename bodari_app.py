@@ -683,12 +683,8 @@ def main_page():
             .eq('date', date.today().isoformat()) \
             .execute()
         
-        if res.data:
-            today_meals = res.data
-        else:
-            st.error(f"Failed to fetch meals. Response: {res}")
-            today_meals = []
-
+        today_meals = res.data if res.data else []
+        
         consumed = {'calories': 0, 'protein': 0, 'fat': 0, 'carbs': 0}
         for meal in today_meals:
             consumed['protein'] += meal.get('protein', 0) or 0
@@ -791,11 +787,7 @@ def main_page():
             .eq('date', date.today().isoformat()) \
             .execute()
         
-        if res.data:
-            pantry_rows = res.data
-        else:
-            st.error(f"Failed to fetch pantry data. Response: {res}")
-            pantry_rows = []
+        pantry_rows = res.data if res.data else []
 
         pantry_ingredients_str = ""
         if pantry_rows:
