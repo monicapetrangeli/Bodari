@@ -216,6 +216,7 @@ button[kind="primary"] {
 }
 
 input, textarea, select {
+    color: #000 !important;
     border-radius: 10px !important;
 }
 
