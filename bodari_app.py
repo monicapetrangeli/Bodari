@@ -997,9 +997,11 @@ def main_page():
             recipes = get_all_recipes()
 
             def matches_filters(recipe):
+                if selected_diets:
                     diet_ok = any(d in recipe['diet'] for d in selected_diets if d != "None")
                 else:
                     diet_ok = True
+                    
                 if selected_ingredients:
                     ingredient_ok = any(ing in recipe['ingredients'] for ing in selected_ingredients)
                 else:
