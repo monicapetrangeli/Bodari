@@ -600,7 +600,10 @@ def main_page():
                         if ":" in line:
                             k, v = line.split(":", 1)
                             ingredients[k.strip()] = v.strip()
-
+                            
+                    if not ingredients:
+                        st.error("Please provide at least one valid ingredient with quantity, e.g. 'Chicken: 150g'")
+                        st.stop()
                     # Create OpenAI prompt
                     prompt = f"""Estimate the total protein (g), fat (g), carbs (g), and calories for a meal made of the following ingredients:
                     """
