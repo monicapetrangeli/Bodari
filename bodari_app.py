@@ -2,7 +2,8 @@ import sqlite3
 import hashlib
 import streamlit as st
 from streamlit import session_state as state
-from datetime import date, time, timedelta
+from datetime import date, timedelta
+import time
 import openai
 from openai import OpenAI, RateLimitError, OpenAIError
 import numpy as np
