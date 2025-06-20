@@ -871,11 +871,8 @@ def main_page():
             .order('date', desc=True) \
             .execute()
         
-        if getattr(res, "status_code", None) == 200 and res.data:
-            meals = res.data
-        else:
-            st.error(f"Failed to fetch meals. Response: {res}")
-            meals = []
+        
+        meals = res.data if res.data else []
 
         if not meals:
             st.info("You haven’t added any meals yet.")
