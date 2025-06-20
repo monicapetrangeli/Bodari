@@ -659,7 +659,7 @@ def main_page():
                         
                         res = supabase.table('user_meals').insert(data).execute()
                         
-                        if getattr(res, "status_code", None) == 201 and res.data:
+                        if res.data:
                             st.success("Meal saved successfully!")
                         else:
                             st.error(f"Failed to save meal. Response: {res}")
@@ -685,7 +685,7 @@ def main_page():
             .eq('date', date.today().isoformat()) \
             .execute()
         
-        if getattr(res, "status_code", None) == 201 and res.data:
+        if res.data:
             today_meals = res.data
         else:
             st.error(f"Failed to fetch meals. Response: {res}")
@@ -693,10 +693,10 @@ def main_page():
 
         consumed = {'calories': 0, 'protein': 0, 'fat': 0, 'carbs': 0}
         for meal in today_meals:
-            consumed['protein'] += meal[0] or 0
-            consumed['fat'] += meal[1] or 0
-            consumed['carbs'] += meal[2] or 0
-            consumed['calories'] += meal[3] or 0
+            consumed['protein'] += meal.get('protein', 0) or 0
+            consumed['fat'] += meal.get('fat', 0) or 0
+            consumed['carbs'] += meal.get('carbs', 0) or 0
+            consumed['calories'] += meal.get('calories', 0) or 0
 
         remaining = {
             'calories': max(daily_calories - consumed['calories'], 0),
@@ -802,7 +802,10 @@ def main_page():
         pantry_ingredients_str = ""
         if pantry_rows:
             pantry_ingredients_str = "\n".join(
-                [f"{ingredient} ({quantity} {unit})" for ingredient, quantity, unit in pantry_rows if quantity]
+                [
+                    f"{row['ingredient']} ({row['quantity']} {row['unit']})"
+                    for row in pantry_rows if row.get('quantity')
+                ]
             )
 
         # If there's a cached meal plan and pantry is unchanged, load it
@@ -820,8 +823,8 @@ def main_page():
             st.error("No meal plan found or failed to fetch.")
 
         # If meal plan already exists and pantry wasn't updated (assumes user hit Save Pantry first), load existing
-        if row and not pantry_ingredients_str:
-            weekly_meal_plan = row[0]
+        if meal_plan and not pantry_ingredients_str:
+            weekly_meal_plan = meal_plan
         else:
             # Compose the prompt
             prompt = f"""
@@ -888,7 +891,12 @@ def main_page():
             st.info("You haven’t added any meals yet.")
         else:
             for meal in meals:
-                m_date, name, p, f, c_, cal = meal
+                m_date = meal.get('date')
+                name = meal.get('meal_name')
+                p = meal.get('protein', 0)
+                f = meal.get('fat', 0)
+                c_ = meal.get('carbs', 0)
+                cal = meal.get('calories', 0)
                 st.markdown(f"**{m_date} – {name}**")
                 st.markdown(f"- Protein: {p}g | Fat: {f}g | Carbs: {c_}g | Calories: {cal} kcal")
 
