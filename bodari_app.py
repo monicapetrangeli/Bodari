@@ -773,10 +773,10 @@ def main_page():
                     'unit': entry[4]
                 }
                 res = supabase.table('grocery_ingredients').upsert(data).execute()
-                if getattr(res, "status_code", None) != 201:
+                if not res.data:
                     st.error(f"Error saving {entry[2]}. Response: {res}")
-
-                st.success("Pantry ingredients saved successfully!")
+                else:
+                    st.success("Pantry ingredients saved successfully!")
                 st.markdown("<br>", unsafe_allow_html=True)
         
         # -------------------- Weekly Meal Plan Section --------------------
