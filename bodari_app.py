@@ -125,7 +125,7 @@ def get_all_recipes():
             "diet": json.loads(row["diet"]) if row.get("diet") else [],
             "ingredients": row["ingredients"] if isinstance(row["ingredients"], dict) else json.loads(row["ingredients"]),
             "calories": row["calories"],
-            "macros": json.loads(row["macros"]) if row.get("macros") else {},
+            "macros": row["macros"] if isinstance(row["macros"], dict) else json.loads(row["macros"]),
             "instructions": row["instructions"]
         })
     return recipes
