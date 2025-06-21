@@ -16,6 +16,10 @@ import os
 from sqlalchemy import text
 from supabase import create_client, Client
 import bcrypt
+import pandas as pd
+import datetime
+import plotly.graph_objects as go
+import plotly.express as px
 
 SUPABASE_URL = st.secrets["supabase"]["url"]
 SUPABASE_KEY = st.secrets["supabase"]["key"]
@@ -452,7 +456,7 @@ def main_page():
     with col2:
         st.image(str(LOGO_TITLE), width=300)
     
-    tab1, tab2, tab3 = st.tabs(['Main', 'Recipes', 'Groceries'])
+    tab1, tab2, tab3 , tab4 , tab5 = st.tabs(['Main', 'Recipes', 'Groceries', 'Image Recognition', 'Fitbit App'])
     with tab1:
 
         user_id = st.session_state.get('user_id')
@@ -1056,6 +1060,269 @@ def main_page():
                     checked.append(item)
             if checked:
                 st.success(f"You marked {len(checked)} item(s) as bought.")
+
+
+
+
+
+# -------------------- Image Recognition Tab --------------------    
+    with tab4:
+        # Inject custom CSS styling directly inside the tab block.
+        st.markdown("""
+        <style>
+        @import url('https://fonts.googleapis.com/css2?family=Marmelad&family=ABeeZee:wght@300;400;600&display=swap');
+
+        html, body, [class*="css"] {
+            font-family: 'ABeeZee', sans-serif !important;
+            background-color: #f7f9fc;
+            text-align: center;
+        }
+
+        main {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        h1, h2, h3, h4 {
+            font-family: 'Marmelad', cursive !important;
+            font-weight: 600;
+        }
+        </style>
+        """, unsafe_allow_html=True)
+        
+        st.header("Image Recognition 🔍")
+        
+        # Image uploader for the ticket image
+        uploaded_image = st.file_uploader("📸 Upload your ticket image", type=["jpg", "jpeg", "png"])
+        
+        if uploaded_image is not None:
+            image = Image.open(uploaded_image)
+            # Display image with a fixed width (using 'width' as use_container_width replacement)
+            st.image(image, caption="Your Ticket 🎫", width=300)
+        
+        # Start analysis on button click
+        if st.button("Analyze 🔎"):
+            st.write("Analyzing your image... ⏳")
+            progress_bar = st.progress(0)
+            for i in range(101):
+                time.sleep(3 / 100)  # Simulate a 3-second progress
+                progress_bar.progress(i)
+            
+            # Predefined list of products from the ticket
+            data = [
+                {"Producto": "Huevo fresco M DO", "Cantidad": 1},
+                {"Producto": "Pizza maxi barbacoa", "Cantidad": 1},
+                {"Producto": "Jamón 250+250", "Cantidad": 1},
+                {"Producto": "Entrecot de añojo", "Cantidad": 1},
+                {"Producto": "Agua Font Vella 1L", "Cantidad": 1},
+                {"Producto": "Aceituna rellena suave", "Cantidad": 1},
+                {"Producto": "Patatas campesinas", "Cantidad": 1},
+                {"Producto": "Aceituna negra", "Cantidad": 2},
+                {"Producto": "Postre leche B. Easo 350g", "Cantidad": 1},
+                {"Producto": "Pan sin corteza Bimbo 610g", "Cantidad": 1},
+                {"Producto": "Leche botella entera Asturiana", "Cantidad": 2},
+                {"Producto": "Torta imperial", "Cantidad": 1},
+                {"Producto": "Turrón duro Calidad Suprema", "Cantidad": 3},
+                {"Producto": "Turrón blando Calidad Suprema", "Cantidad": 3},
+                {"Producto": "Turrón yema tostada", "Cantidad": 1},
+                {"Producto": "Vino tinto crianza C. Colegia", "Cantidad": 1},
+                {"Producto": "Jabón Magno", "Cantidad": 1},
+                {"Producto": "Bolsa Eroski OXO", "Cantidad": 4}
+            ]
+            df = pd.DataFrame(data)
+            # Filter out non-food items (assuming "Jabón Magno" and "Bolsa Eroski OXO" are non-food)
+            food_items = df[~df["Producto"].isin(["Jabón Magno", "Bolsa Eroski OXO"])]
+            
+            st.markdown("### Identified Food Items 🍏")
+            # Display a more nicely designed table using st.dataframe
+            st.dataframe(food_items.reset_index(drop=True), width=600, height=300)
+            
+            # Final summary message with fixed text
+            st.markdown("<h3>22 productos added to your pantry 🎉</h3>", unsafe_allow_html=True)
+
+
+
+# -------------------- Fitbit Dashboard Tab --------------------
+
+
+    with tab5:
+        st.markdown("""
+            <style>
+            @import url('https://fonts.googleapis.com/css2?family=Marmelad&family=ABeeZee:wght@300;400;600&display=swap');
+
+            html, body, [class*="css"] {
+                font-family: 'ABeeZee', sans-serif !important;
+                background-color: #f7f9fc;
+                text-align: center;
+            }
+
+            main {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+            }
+
+            h1, h2, h3, h4 {
+                font-family: 'Marmelad', cursive !important;
+                font-weight: 600;
+            }
+            </style>
+            """, unsafe_allow_html=True)
+        
+        st.header("Fitbit Dashboard 🏃‍♂️")
+
+        # -------------------------------------------------------------------------
+        # Display the current day of the week.
+        # -------------------------------------------------------------------------
+        day_of_week = datetime.datetime.now().strftime("%A")
+        st.subheader(f"Today is {day_of_week}")
+
+        # -------------------------------------------------------------------------
+        # Fake Data Generation for the Dashboard
+        # -------------------------------------------------------------------------
+        steps = np.random.randint(3000, 15000)
+        steps_target = 10000
+
+        kcal_burned = np.random.randint(1500, 3500)
+        kcal_target = 2500
+
+        times = pd.date_range(start=datetime.datetime.now().replace(hour=6, minute=0, second=0, microsecond=0), periods=12, freq='H')
+        heart_rate = np.random.randint(60, 160, size=12)
+        df_hr = pd.DataFrame({"Time": times, "Heart Rate": heart_rate})
+
+        sleep_stages = ["Deep", "Light", "REM", "Awake"]
+        sleep_hours = [np.random.uniform(1, 3), np.random.uniform(2, 4), np.random.uniform(1, 2), np.random.uniform(0.5, 1)]
+        df_sleep = pd.DataFrame({"Stage": sleep_stages, "Hours": np.round(sleep_hours, 1)})
+
+        dates = pd.date_range(end=datetime.datetime.now(), periods=7)
+        weekly_steps = [np.random.randint(5000, 12000) for _ in range(7)]
+        weekly_calories = [np.random.randint(2000, 3200) for _ in range(7)]
+        weekly_active = [np.random.randint(30, 120) for _ in range(7)]
+        weekly_sleep = [np.random.uniform(5, 8) for _ in range(7)]
+        weekly_resting_hr = [np.random.randint(55, 75) for _ in range(7)]
+        df_week = pd.DataFrame({
+            "Date": dates,
+            "Steps": weekly_steps,
+            "Calories Burned": weekly_calories,
+            "Active Minutes": weekly_active,
+            "Sleep Hours": weekly_sleep,
+
+        })
+
+        # -------------------------------------------------------------------------
+        # Charts in 2 Columns
+        # -------------------------------------------------------------------------
+        col1, col2 = st.columns(2)
+
+        with col1:
+            gauge_steps = go.Figure(go.Indicator(
+                mode="gauge+number",
+                value=steps,
+                domain={'x': [0, 1], 'y': [0, 1]},
+                title={'text': "Steps Walked 🚶‍♂️"},
+                gauge={
+                    'axis': {'range': [0, 15000]},
+                    'bar': {'color': "#6a5acd"},
+                    'steps': [
+                        {'range': [0, steps_target], 'color': "#dcdcff"},
+                        {'range': [steps_target, 15000], 'color': "#f3f3f3"}
+                    ],
+                }
+            ))
+            gauge_steps.update_layout(height=250, margin={'t': 50, 'b': 0})
+            st.plotly_chart(gauge_steps, use_container_width=True)
+
+        with col2:
+            gauge_kcal = go.Figure(go.Indicator(
+                mode="gauge+number",
+                value=kcal_burned,
+                domain={'x': [0, 1], 'y': [0, 1]},
+                title={'text': "Calories Burned 🔥"},
+                gauge={
+                    'axis': {'range': [0, 3500]},
+                    'bar': {'color': "#ff6347"},
+                    'steps': [
+                        {'range': [0, kcal_target], 'color': "#ffe4e1"},
+                        {'range': [kcal_target, 3500], 'color': "#f3f3f3"}
+                    ],
+                }
+            ))
+            gauge_kcal.update_layout(height=250, margin={'t': 50, 'b': 0})
+            st.plotly_chart(gauge_kcal, use_container_width=True)
+
+        col3, col4 = st.columns(2)
+
+        with col3:
+            line_hr = px.line(df_hr, x="Time", y="Heart Rate", title="Heart Rate Over Day ❤️")
+            st.plotly_chart(line_hr, use_container_width=True)
+
+        with col4:
+            bar_sleep = px.bar(df_sleep, x="Stage", y="Hours", title="Sleep Breakdown 😴", text="Hours", color="Stage")
+            st.plotly_chart(bar_sleep, use_container_width=True)
+
+        col5, col6 = st.columns(2)
+
+        radar_categories = ["Endurance", "Strength", "Flexibility", "Speed", "Stamina"]
+        radar_values = np.random.randint(50, 100, size=4).tolist()
+        radar_values.append(radar_values[0])
+        radar_categories.append(radar_categories[0])
+
+        with col5:
+            radar_chart = go.Figure()
+            radar_chart.add_trace(go.Scatterpolar(
+                r=radar_values,
+                theta=radar_categories,
+                fill='toself',
+                name='Fitness Metrics',
+                line=dict(color="#ff6347")
+            ))
+            radar_chart.update_layout(
+                polar=dict(radialaxis=dict(visible=True, range=[0, 100])),
+                showlegend=False,
+                title="Overall Fitness Metrics 🔥"
+            )
+            st.plotly_chart(radar_chart, use_container_width=True)
+
+        with col6:
+            activity_labels = ["Sedentary", "Moderate", "Vigorous"]
+            activity_values = [np.random.randint(300, 900), np.random.randint(200, 600), np.random.randint(100, 300)]
+            pie_chart = px.pie(names=activity_labels, values=activity_values, title="Daily Activity Distribution")
+            st.plotly_chart(pie_chart, use_container_width=True)
+
+        # -------------------------------------------------------------------------
+        # Weekly Summary Table (Keep in full width)
+        # -------------------------------------------------------------------------
+        st.markdown("### Weekly Summary 📅")
+        st.dataframe(df_week.style.format({
+            "Steps": "{:,}",
+            "Calories Burned": "{:,}",
+            "Active Minutes": "{:,}",
+            "Sleep Hours": "{:.1f}",
+        }), height=300)
+
+        # -------------------------------------------------------------------------
+        # Weekly Trends in 2-column layout
+        # -------------------------------------------------------------------------
+        st.markdown("#### Trends Over Last 7 Days")
+        trends = [
+            px.line(df_week, x="Date", y="Steps", title="Steps Trend"),
+            px.line(df_week, x="Date", y="Calories Burned", title="Calories Burned Trend", markers=True),
+            px.line(df_week, x="Date", y="Active Minutes", title="Active Minutes Trend"),
+            px.line(df_week, x="Date", y="Sleep Hours", title="Sleep Hours Trend"),
+        ]
+
+        for i in range(0, len(trends), 2):
+            c1, c2 = st.columns(2)
+            with c1:
+                st.plotly_chart(trends[i], use_container_width=True)
+            if i + 1 < len(trends):
+                with c2:
+                    st.plotly_chart(trends[i + 1], use_container_width=True)
+
+
 
 # -------------------- App Initialization --------------------
 
