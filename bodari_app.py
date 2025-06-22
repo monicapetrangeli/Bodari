@@ -1254,42 +1254,15 @@ def main_page():
         col3, col4 = st.columns(2)
 
         with col3:
-            line_hr = px.line(df_hr, x="Time", y="Heart Rate", title="Heart Rate Over Day ❤️")
-            st.plotly_chart(line_hr, use_container_width=True)
-
-        with col4:
-            bar_sleep = px.bar(df_sleep, x="Stage", y="Hours", title="Sleep Breakdown 😴", text="Hours", color="Stage")
-            st.plotly_chart(bar_sleep, use_container_width=True)
-
-        col5, col6 = st.columns(2)
-
-        radar_categories = ["Endurance", "Strength", "Flexibility", "Speed", "Stamina"]
-        radar_values = np.random.randint(50, 100, size=4).tolist()
-        radar_values.append(radar_values[0])
-        radar_categories.append(radar_categories[0])
-
-        with col5:
-            radar_chart = go.Figure()
-            radar_chart.add_trace(go.Scatterpolar(
-                r=radar_values,
-                theta=radar_categories,
-                fill='toself',
-                name='Fitness Metrics',
-                line=dict(color="#ff6347")
-            ))
-            radar_chart.update_layout(
-                polar=dict(radialaxis=dict(visible=True, range=[0, 100])),
-                showlegend=False,
-                title="Overall Fitness Metrics 🔥"
-            )
-            st.plotly_chart(radar_chart, use_container_width=True)
-
-        with col6:
             activity_labels = ["Sedentary", "Moderate", "Vigorous"]
             activity_values = [np.random.randint(300, 900), np.random.randint(200, 600), np.random.randint(100, 300)]
             pie_chart = px.pie(names=activity_labels, values=activity_values, title="Daily Activity Distribution")
             st.plotly_chart(pie_chart, use_container_width=True)
 
+        with col4:
+            bar_sleep = px.bar(df_sleep, x="Stage", y="Hours", title="Sleep Breakdown 😴", text="Hours", color="Stage")
+            st.plotly_chart(bar_sleep, use_container_width=True)
+            
         # -------------------------------------------------------------------------
         # Weekly Summary Table (Keep in full width)
         # -------------------------------------------------------------------------
