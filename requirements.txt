@@ -7,3 +7,4 @@ SQLAlchemy
 pymysql
 supabase
 bcrypt
+plotly
