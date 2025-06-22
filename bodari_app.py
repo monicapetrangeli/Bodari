@@ -1090,15 +1090,15 @@ def main_page():
         </style>
         """, unsafe_allow_html=True)
         
-        st.header("Image Recognition 🔍")
+        st.header("Image Recognition")
         
         # Image uploader for the ticket image
-        uploaded_image = st.file_uploader("📸 Upload your ticket image", type=["jpg", "jpeg", "png"])
+        uploaded_image = st.file_uploader("Upload your ticket image", type=["jpg", "jpeg", "png"])
         
         if uploaded_image is not None:
             image = Image.open(uploaded_image)
             # Display image with a fixed width (using 'width' as use_container_width replacement)
-            st.image(image, caption="Your Ticket 🎫", width=300)
+            st.image(image, caption="Your Ticket", width=300)
         
         # Start analysis on button click
         if st.button("Analyze 🔎"):
@@ -1133,7 +1133,7 @@ def main_page():
             # Filter out non-food items (assuming "Jabón Magno" and "Bolsa Eroski OXO" are non-food)
             food_items = df[~df["Producto"].isin(["Jabón Magno", "Bolsa Eroski OXO"])]
             
-            st.markdown("### Identified Food Items 🍏")
+            st.markdown("### Identified Food Items")
             # Display a more nicely designed table using st.dataframe
             st.dataframe(food_items.reset_index(drop=True), width=600, height=300)
             
