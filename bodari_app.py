@@ -1170,7 +1170,7 @@ def main_page():
             </style>
             """, unsafe_allow_html=True)
         
-        st.header("Fitbit Dashboard 🏃‍♂️")
+        st.header("Fitbit Dashboard")
 
         # -------------------------------------------------------------------------
         # Display the current day of the week.
@@ -1220,7 +1220,7 @@ def main_page():
                 mode="gauge+number",
                 value=steps,
                 domain={'x': [0, 1], 'y': [0, 1]},
-                title={'text': "Steps Walked 🚶‍♂️"},
+                title={'text': "Steps Walked"},
                 gauge={
                     'axis': {'range': [0, 15000]},
                     'bar': {'color': "#6a5acd"},
@@ -1238,7 +1238,7 @@ def main_page():
                 mode="gauge+number",
                 value=kcal_burned,
                 domain={'x': [0, 1], 'y': [0, 1]},
-                title={'text': "Calories Burned 🔥"},
+                title={'text': "Calories Burned"},
                 gauge={
                     'axis': {'range': [0, 3500]},
                     'bar': {'color': "#ff6347"},
@@ -1260,13 +1260,13 @@ def main_page():
             st.plotly_chart(pie_chart, use_container_width=True)
 
         with col4:
-            bar_sleep = px.bar(df_sleep, x="Stage", y="Hours", title="Sleep Breakdown 😴", text="Hours", color="Stage")
+            bar_sleep = px.bar(df_sleep, x="Stage", y="Hours", title="Sleep Breakdown", text="Hours", color="Stage")
             st.plotly_chart(bar_sleep, use_container_width=True)
             
         # -------------------------------------------------------------------------
         # Weekly Summary Table (Keep in full width)
         # -------------------------------------------------------------------------
-        st.markdown("### Weekly Summary 📅")
+        st.markdown("### Weekly Summary")
         st.dataframe(df_week.style.format({
             "Steps": "{:,}",
             "Calories Burned": "{:,}",
