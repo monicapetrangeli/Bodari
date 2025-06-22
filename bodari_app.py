@@ -1250,17 +1250,38 @@ def main_page():
             ))
             gauge_kcal.update_layout(height=250, margin={'t': 50, 'b': 0})
             st.plotly_chart(gauge_kcal, use_container_width=True)
-
+            
+        custom_colors = ["#F5A623", "#5C2D91", "#00B8B0"]
         col3, col4 = st.columns(2)
 
         with col3:
             activity_labels = ["Sedentary", "Moderate", "Vigorous"]
-            activity_values = [np.random.randint(300, 900), np.random.randint(200, 600), np.random.randint(100, 300)]
-            pie_chart = px.pie(names=activity_labels, values=activity_values, title="Daily Activity Distribution")
+            activity_values = [
+                np.random.randint(300, 900),
+                np.random.randint(200, 600),
+                np.random.randint(100, 300)
+            ]
+
+            pie_chart = px.pie(
+                names=activity_labels,
+                values=activity_values,
+                title="Daily Activity Distribution",
+                color_discrete_sequence=custom_colors
+            )
+            
             st.plotly_chart(pie_chart, use_container_width=True)
 
         with col4:
-            bar_sleep = px.bar(df_sleep, x="Stage", y="Hours", title="Sleep Breakdown", text="Hours", color="Stage")
+            bar_sleep = px.bar(
+                df_sleep,
+                x="Stage",
+                y="Hours",
+                title="Sleep Breakdown",
+                text="Hours",
+                color="Stage",
+                color_discrete_sequence=custom_colors
+            )
+            
             st.plotly_chart(bar_sleep, use_container_width=True)
             
         # -------------------------------------------------------------------------
