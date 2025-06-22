@@ -2,7 +2,7 @@ import sqlite3
 import hashlib
 import streamlit as st
 from streamlit import session_state as state
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
 import time
 import openai
 from openai import OpenAI, RateLimitError, OpenAIError
@@ -17,7 +17,6 @@ from sqlalchemy import text
 from supabase import create_client, Client
 import bcrypt
 import pandas as pd
-import datetime
 import plotly.graph_objects as go
 import plotly.express as px
 
@@ -497,7 +496,6 @@ def main_page():
 
         # Ensure dob is a date object
         if isinstance(dob, str):
-            from datetime import datetime
             dob = datetime.strptime(dob, "%Y-%m-%d").date()
         
         age = calculate_age(dob)
@@ -1177,7 +1175,7 @@ def main_page():
         # -------------------------------------------------------------------------
         # Display the current day of the week.
         # -------------------------------------------------------------------------
-        day_of_week = datetime.datetime.now().strftime("%A")
+        day_of_week = datetime.now().strftime("%A")
         st.subheader(f"Today is {day_of_week}")
 
         # -------------------------------------------------------------------------
@@ -1189,7 +1187,7 @@ def main_page():
         kcal_burned = np.random.randint(1500, 3500)
         kcal_target = 2500
 
-        times = pd.date_range(start=datetime.datetime.now().replace(hour=6, minute=0, second=0, microsecond=0), periods=12, freq='H')
+        times = pd.date_range(start=datetime.now().replace(hour=6, minute=0, second=0, microsecond=0), periods=12, freq='H')
         heart_rate = np.random.randint(60, 160, size=12)
         df_hr = pd.DataFrame({"Time": times, "Heart Rate": heart_rate})
 
@@ -1197,7 +1195,7 @@ def main_page():
         sleep_hours = [np.random.uniform(1, 3), np.random.uniform(2, 4), np.random.uniform(1, 2), np.random.uniform(0.5, 1)]
         df_sleep = pd.DataFrame({"Stage": sleep_stages, "Hours": np.round(sleep_hours, 1)})
 
-        dates = pd.date_range(end=datetime.datetime.now(), periods=7)
+        dates = pd.date_range(end=datetime.now(), periods=7)
         weekly_steps = [np.random.randint(5000, 12000) for _ in range(7)]
         weekly_calories = [np.random.randint(2000, 3200) for _ in range(7)]
         weekly_active = [np.random.randint(30, 120) for _ in range(7)]
